@@ -1,7 +1,7 @@
 import { expect, it, beforeEach, describe } from 'vitest';
 import { z, Schema } from 'zod';
 import { Envelope } from '../src/envelope';
-import { createBus, Bus, Middleware } from '../src/bus';
+import { createBus, MissiveBus, Middleware } from '../src/bus';
 
 type MyEvents = {
     event1: { query: { foo: string }; result: { bar: number } };
@@ -9,7 +9,7 @@ type MyEvents = {
 };
 
 describe('Bus', () => {
-    let bus: Bus<'query', MyEvents>;
+    let bus: MissiveBus<'query', MyEvents>;
 
     beforeEach(() => {
         bus = createBus<'query', MyEvents>();
