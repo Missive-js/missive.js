@@ -17,8 +17,8 @@ type HandlerDefinition<B extends BusType, Q = object, R = object> = {
 };
 
 export type Bus<B extends BusType, HD extends Record<string, HandlerDefinition<B>>> = {
-    use: (middleware: Middleware<B, HD>) => void;
-    register: <K extends keyof HD & string>(
+    useMiddleware: (middleware: Middleware<B, HD>) => void;
+    registerHandler: <K extends keyof HD & string>(
         type: K,
         schema: Schema<HD[K][B]>,
         handler: Handler<HD[K][B], HD[K]['result']>,
@@ -43,7 +43,7 @@ export const createBus = <B extends BusType, HD extends Record<string, HandlerDe
         middlewares.push(middleware);
     };
 
-    const register = <K extends keyof HD & string>(
+    const registerHandler = <K extends keyof HD & string>(
         type: K,
         schema: Schema<HD[K][B]>,
         handler: Handler<HD[K][B], HD[K]['result']>,
@@ -111,9 +111,9 @@ export const createBus = <B extends BusType, HD extends Record<string, HandlerDe
         };
     };
     return {
-        use,
+        useMiddleware: use,
         createIntent,
-        register,
+        registerHandler: registerHandler,
         dispatch,
     };
 };
