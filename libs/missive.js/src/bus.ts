@@ -24,8 +24,8 @@ type HandlerDefinition<BusKind extends BusKinds, Q = object, Result = object> = 
 };
 
 export type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = {
-    useMiddleware: (middleware: Middleware<BusKind, HandlerDefinitions>) => void;
-    registerHandler: <MessageKind extends keyof HandlerDefinitions & string>(
+    use: (middleware: Middleware<BusKind, HandlerDefinitions>) => void;
+    register: <MessageKind extends keyof HandlerDefinitions & string>(
         type: MessageKind,
         schema: ZodSchema<HandlerDefinitions[MessageKind][BusKind]>,
         handler: MessageHandler<HandlerDefinitions[MessageKind][BusKind], HandlerDefinitions[MessageKind]['result']>,
@@ -42,11 +42,25 @@ export type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends Mess
     ) => TypedMessage<HandlerDefinitions[MessageKind][BusKind], MessageKind>;
 };
 
-export const createBus = <
+type HandlerConfig<
     BusKind extends BusKinds,
     HandlerDefinitions extends MessageRegistryType<BusKind>,
->(): MissiveBus<BusKind, HandlerDefinitions> => {
-    const middlewares: Middleware<BusKind, HandlerDefinitions>[] = [];
+    MessageName extends keyof HandlerDefinitions & string = keyof HandlerDefinitions & string,
+> = HandlerDefinitions[MessageName] extends infer Definitions
+    ? Definitions extends Record<string, unknown>
+        ? {
+              messageName: MessageName;
+              schema: ZodSchema<Definitions[BusKind]>;
+              handler: MessageHandler<Definitions[BusKind], Definitions['result']>;
+          }
+        : never
+    : never;
+
+export const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>>(args?: {
+    middlewares?: Middleware<BusKind, HandlerDefinitions>[];
+    handlers?: HandlerConfig<BusKind, HandlerDefinitions>[];
+}): MissiveBus<BusKind, HandlerDefinitions> => {
+    const middlewares: Middleware<BusKind, HandlerDefinitions>[] = args?.middlewares || [];
 
     const registry: {
         [MessageName in keyof HandlerDefinitions & string]?: {
@@ -72,6 +86,12 @@ export const createBus = <
         }
         registry[messageName].handlers.push(handler);
     };
+
+    if (args?.handlers) {
+        for (const { messageName, schema, handler } of args.handlers) {
+            registerHandler(messageName as keyof HandlerDefinitions & string, schema, handler);
+        }
+    }
 
     const createMiddlewareChain = <MessageName extends keyof HandlerDefinitions & string>(
         handlers: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>[],
@@ -140,8 +160,8 @@ export const createBus = <
         };
     };
     return {
-        useMiddleware: useMiddleware,
-        registerHandler,
+        use: useMiddleware,
+        register: registerHandler,
         dispatch,
         createIntent,
     };

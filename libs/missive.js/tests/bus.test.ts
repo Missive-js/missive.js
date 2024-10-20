@@ -24,7 +24,7 @@ describe('Bus', () => {
             return { bar: 42 };
         };
 
-        bus.registerHandler('event1', schema, handler);
+        bus.register('event1', schema, handler);
         const intent = bus.createIntent('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
 
@@ -39,7 +39,7 @@ describe('Bus', () => {
             expect(envelope.message.baz).toBe(true);
             return { qux: 'success' };
         };
-        bus.registerHandler('event2', schema, handler);
+        bus.register('event2', schema, handler);
 
         const intent = bus.createIntent('event2', { baz: true });
         const result = await bus.dispatch(intent);
@@ -61,8 +61,8 @@ describe('Bus', () => {
             await next();
         };
 
-        bus.useMiddleware(middleware);
-        bus.registerHandler('event1', schema, handler);
+        bus.use(middleware);
+        bus.register('event1', schema, handler);
 
         const intent = bus.createIntent('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
@@ -86,7 +86,7 @@ describe('Bus', () => {
             return { bar: 42 };
         };
 
-        bus.registerHandler('event1', schema, handler);
+        bus.register('event1', schema, handler);
         // @ts-expect-error -- intentionally, we test for the error
         expect(() => bus.createIntent('event1', { foo: 123 })).toThrow();
     });
