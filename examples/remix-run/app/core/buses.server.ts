@@ -21,10 +21,12 @@ eventBus.register('userCreated', userCreatedEventSchema, createUserCreatedHandle
 eventBus.register('userCreated', userCreatedEventSchema, createUserCreatedHandler2({}));
 eventBus.register('userRemoved', userRemovedEventSchema, createUserRemovedHandler({}));
 
-const commandBus = createBus<'command', CommandDefitions>();
-commandBus.use(loggerMiddleware);
-commandBus.use(createEventsMiddleware(eventBus));
-commandBus.register('createUser', createUserCommandSchema, createCreateUserHandler({}));
-commandBus.register('removeUser', removeUserCommandSchema, createRemoveUserHandler({}));
+const commandBus = createBus<'command', CommandDefitions>({
+    middlewares: [loggerMiddleware, createEventsMiddleware(eventBus)],
+    handlers: [
+        { messageName: 'createUser', schema: createUserCommandSchema, handler: createCreateUserHandler({}) },
+        { messageName: 'removeUser', schema: removeUserCommandSchema, handler: createRemoveUserHandler({}) },
+    ],
+});
 
 export { queryBus, commandBus, eventBus };
