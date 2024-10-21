@@ -1,9 +1,6 @@
-import { json, type ActionFunctionArgs, type LoaderFunctionArgs, type MetaFunction } from '@remix-run/node';
+import { json } from '@remix-run/node';
 import { Form } from '@remix-run/react';
-import { queryBus, commandBus } from '~/core/buses.server';
-export const meta: MetaFunction = () => {
-    return [{ title: 'New Remix App' }, { name: 'description', content: 'Welcome to Remix!' }];
-};
+import { queryBus, commandBus } from 'missive.js-shared-code-example';
 
 export const loader = async () => {
     const getUserQuery = queryBus.createIntent('getUser', { email: 'plopix@example.com' });

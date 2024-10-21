@@ -1,5 +1,5 @@
 import { Schema as ZodSchema } from 'zod';
-import { createEnvelope, Envelope } from './envelope';
+import { createEnvelope, Envelope } from './envelope.js';
 
 type BusKinds = 'query' | 'command' | 'event';
 

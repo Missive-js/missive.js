@@ -1,13 +1,13 @@
 import { createBus } from 'missive.js';
-import { CommandDefitions, EventDefitions, QueryDefitions } from '~/domain/contracts/bus';
-import { createEventsMiddleware } from '~/domain/middlewares/events';
-import { createLoggerMiddleware } from '~/domain/middlewares/logger';
-import { createCreateUserHandler, createUserCommandSchema } from '~/domain/use-cases/create-user';
-import { createGetUserHandler, getUserQuerySchema } from '~/domain/use-cases/get-user';
-import { createRemoveUserHandler, removeUserCommandSchema } from '~/domain/use-cases/remove-user';
-import { createUserCreatedHandler, userCreatedEventSchema } from '~/domain/use-cases/user-created';
-import { createUserCreatedHandler2 } from '~/domain/use-cases/user-created2';
-import { createUserRemovedHandler, userRemovedEventSchema } from '~/domain/use-cases/user-removed';
+import { CommandDefitions, EventDefitions, QueryDefitions } from '../domain/contracts/bus.js';
+import { createEventsMiddleware } from '../domain/middlewares/events.js';
+import { createLoggerMiddleware } from '../domain/middlewares/logger.js';
+import { createCreateUserHandler, createUserCommandSchema } from '../domain/use-cases/create-user.js';
+import { createGetUserHandler, getUserQuerySchema } from '../domain/use-cases/get-user.js';
+import { createRemoveUserHandler, removeUserCommandSchema } from '../domain/use-cases/remove-user.js';
+import { createUserCreatedHandler, userCreatedEventSchema } from '../domain/use-cases/user-created.js';
+import { createUserCreatedHandler2 } from '../domain/use-cases/user-created2.js';
+import { createUserRemovedHandler, userRemovedEventSchema } from '../domain/use-cases/user-removed.js';
 
 const loggerMiddleware = createLoggerMiddleware();
 

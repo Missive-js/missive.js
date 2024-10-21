@@ -1,6 +1,6 @@
 #!/bin/bash
 
-WORKDING_DIRS="libs/missive.js/src"
+WORKDING_DIRS="libs/missive.js/src examples/shared/src"
 
 for WORKDING_DIR in ${WORKDING_DIRS}; do
     cd ${WORKDING_DIR}

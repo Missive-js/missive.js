@@ -5,3 +5,5 @@ pnpm-lock.yaml
 .cache
 .git
 .turbo
+.next
+.astro

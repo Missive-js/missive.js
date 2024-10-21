@@ -1,5 +1,5 @@
 import { Envelope } from 'missive.js';
-import { Event } from './user-created';
+import { Event } from './user-created.js';
 type Deps = {};
 
 const handler = async (envelope: Envelope<Event>, deps: Deps) => {

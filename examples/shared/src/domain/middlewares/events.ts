@@ -1,5 +1,5 @@
 import { Middleware } from 'missive.js';
-import { CommandDefitions, EventBus, UserCreatedEventStamp, UserRemovedEventStamp } from '../contracts/bus';
+import { CommandDefitions, EventBus, UserCreatedEventStamp, UserRemovedEventStamp } from '../contracts/bus.js';
 
 export const createEventsMiddleware =
     (eventBus: EventBus): Middleware<'command', CommandDefitions> =>

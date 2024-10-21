@@ -1,0 +1,26 @@
+{
+    "devDependencies": {
+        "tsconfig": "workspace:*",
+        "@types/node": "^22.7.7",
+        "typescript": "^5.6.3"
+    },
+    "dependencies": {
+        "zod": "^3.23.8",
+        "missive.js": "workspace:*",
+        "missive.js-shared-code-example": "workspace:*"
+    },
+    "engines": {
+        "node": ">=20"
+    },
+    "name": "missive.js-cli-example",
+    "private": true,
+    "scripts": {
+        "types:check": "tsc --noEmit",
+        "build": "tsc",
+        "watch": "tsc -W --preserveWatchOutput",
+        "dev": "node ./build/index.js",
+        "lint:check": "eslint .",
+        "lint:fix": "eslint . --fix"
+    },
+    "type": "module"
+}

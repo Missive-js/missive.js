@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserCreatedEventStamp } from '../contracts/bus';
+import { UserCreatedEventStamp } from '../contracts/bus.js';
 import { Envelope } from 'missive.js';
 
 type Deps = {};

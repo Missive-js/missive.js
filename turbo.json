@@ -21,7 +21,7 @@
             "cache": false
         },
         "test": {
-            "outputs": []
+            "cache": false
         },
         "types:check": {
             "cache": false

@@ -1,9 +1,9 @@
-import { CreateUserHandlerDefinition } from '~/domain/use-cases/create-user';
-import { UserCreatedHandlerDefinition } from '~/domain/use-cases/user-created';
-import { GetUserHandlerDefinition } from '~/domain/use-cases/get-user';
-import { RemoveUserHandlerDefinition } from '../use-cases/remove-user';
+import { CreateUserHandlerDefinition } from '../use-cases/create-user.js';
+import { UserCreatedHandlerDefinition } from '../use-cases/user-created.js';
+import { GetUserHandlerDefinition } from '../use-cases/get-user.js';
+import { RemoveUserHandlerDefinition } from '../use-cases/remove-user.js';
 import { MissiveBus } from 'missive.js';
-import { UserRemovedHandlerDefinition } from '../use-cases/user-removed';
+import { UserRemovedHandlerDefinition } from '../use-cases/user-removed.js';
 
 export type QueryDefitions = GetUserHandlerDefinition;
 export type QueryBus = MissiveBus<'query', QueryDefitions>;

@@ -49,17 +49,17 @@ strict-codeclean: codeclean
 build: ## Build All
 	@$(PACKAGE_MANAGER) run build
 
-.PHONY: serve
-serve: ## Serve the application
-	@$(PACKAGE_MANAGER) run dev
-
 .PHONY: watch
 watch: ## Watch
 	@bash tools/create-index-file-for-lib.bash
 	@$(PACKAGE_MANAGER) watch
 
+.PHONY: only-tests
+only-tests: ## Run Tests only
+	@$(PACKAGE_MANAGER) run test
+
 .PHONY: tests
-tests: codeclean ## Run All the Tests
+tests: codeclean ## Run Codeclean, Tests and Builds
 	@$(PACKAGE_MANAGER) run test
 	@$(PACKAGE_MANAGER) run build
 
@@ -67,6 +67,15 @@ tests: codeclean ## Run All the Tests
 serve-docs: ## Run the Docs
 	@$(PACKAGE_MANAGER) run dev --filter=missive.js-docs
 
+.PHONY: serve-cli-example
+serve-cli-example: ## Run the CLI Example
+	@$(PACKAGE_MANAGER) run dev --filter=missive.js-cli-example
+
 .PHONY: serve-remix-run-example
 serve-remix-run-example: ## Run the Remix Run Example
 	@$(PACKAGE_MANAGER) run dev --filter=missive.js-remix-run-example
+
+.PHONY: serve-nextjs-example
+serve-nextjs-example: ## Run the Next JS Example
+	@$(PACKAGE_MANAGER) run dev --filter=missive.js-nextjs-example
+
