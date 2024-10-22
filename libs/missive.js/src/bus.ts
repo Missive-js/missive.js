@@ -89,7 +89,7 @@ type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegi
 
 type CommandBus<HandlerDefinitions extends CommandMessageRegistryType> = ReplaceKeys<
     MissiveBus<'command', HandlerDefinitions>,
-    { createCommand: 'createIntent'; submitCommand: 'dispatch' }
+    { createCommand: 'createIntent'; }
 >;
 export type MissiveCommandBus<HandlerDefinitions extends CommandMessageRegistryType> = Prettify<
     CommandBus<HandlerDefinitions>
@@ -97,16 +97,15 @@ export type MissiveCommandBus<HandlerDefinitions extends CommandMessageRegistryT
 
 type QueryBus<HandlerDefinitions extends QueryMessageRegistryType> = ReplaceKeys<
     MissiveBus<'query', HandlerDefinitions>,
-    { createQuery: 'createIntent'; query: 'dispatch' }
+    { createQuery: 'createIntent' }
 >;
-
 export type MissiveQueryBus<HandlerDefinitions extends QueryMessageRegistryType> = Prettify<
     QueryBus<HandlerDefinitions>
 >;
 
 type EventBus<HandlerDefinitions extends EventMessageRegistryType> = ReplaceKeys<
     MissiveBus<'event', HandlerDefinitions>,
-    { createEvent: 'createIntent'; dispatchEvent: 'dispatch' }
+    { createEvent: 'createIntent' }
 >;
 export type MissiveEventBus<HandlerDefinitions extends EventMessageRegistryType> = Prettify<
     EventBus<HandlerDefinitions>
@@ -246,7 +245,7 @@ export const createCommandBus = <HandlerDefinitions extends CommandMessageRegist
     return {
         use: commandBus.use,
         register: commandBus.register,
-        submitCommand: commandBus.dispatch,
+        dispatch: commandBus.dispatch,
         createCommand: commandBus.createIntent,
     };
 };
@@ -260,7 +259,7 @@ export const createQueryBus = <HandlerDefinitions extends QueryMessageRegistryTy
     return {
         use: queryBus.use,
         register: queryBus.register,
-        query: queryBus.dispatch,
+        dispatch: queryBus.dispatch,
         createQuery: queryBus.createIntent,
     };
 };
@@ -274,7 +273,7 @@ export const createEventBus = <HandlerDefinitions extends EventMessageRegistryTy
     return {
         use: eventBus.use,
         register: eventBus.register,
-        dispatchEvent: eventBus.dispatch,
+        dispatch: eventBus.dispatch,
         createEvent: eventBus.createIntent,
     };
 };
