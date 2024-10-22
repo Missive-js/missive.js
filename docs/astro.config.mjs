@@ -16,21 +16,32 @@ export default defineConfig({
         starlight({
             title,
             logo: {
-                src: './src/assets/bus.svg',
+                src: './src/assets/envelope.svg',
                 alt: title,
             },
             social: {
                 github,
             },
             customCss: ['./src/tailwind.css'],
+            components: {
+                Footer: './src/ui/components/astro/footer.astro',
+            },
             sidebar: [
+                {
+                    label: 'Why Missive.js?',
+                    slug: 'why',
+                    badge: {
+                        text: 'must read',
+                        variant: 'tip',
+                    },
+                },
                 {
                     label: 'Guides',
                     autogenerate: { directory: 'guides' },
                 },
                 // {
                 //     label: 'Reference',
-                //     autogenerate: { directory: 'reference' },
+                //     autogenerate: { directory: 'guides copy' },
                 // },
             ],
         }),

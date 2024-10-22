@@ -2,6 +2,7 @@ node_modules
 dist
 build
 pnpm-lock.yaml
+*.mdx
 .cache
 .git
 .turbo

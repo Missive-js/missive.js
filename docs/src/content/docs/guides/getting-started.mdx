@@ -1,11 +1,73 @@
 ---
 title: Gettting started
 description: A guide on how to first use the Service Bus
-next: { label: 'Fake', link: '#fake' }
 ---
 
-blabla
+import HowDoesItWork from '../includes/how-does-it-work.mdx';
+import Install from '../includes/steps/install.mdx';
+import CreateBus from '../includes/steps/create-bus.mdx';
+import CreateHandler from '../includes/steps/create-handler.mdx';
+import Disptach from '../includes/steps/dispatch.mdx';
 
-## Further reading
+import { Badge, Aside } from '@astrojs/starlight/components';
 
--   blibli
+## Installation
+
+Like any other package, you can install Missive.js using _npm_, _yarn_ or _pnpm_.
+Notice that [Zod](https://zod.dev) is a peer dependency, you need to install it as well if you don't have it already in your project.
+
+<Install />
+
+## Create your first handler
+
+Here we are going to create an handler aside its definitions.
+
+<CreateHandler />
+
+<Aside text="Understand this code" variant='note'>
+Only 3 things are going to change in your code. `Type`, `handler` and `Schema`. The following lines are a boilerplate code that you can copy-paste for a Command.
+```typescript
+
+type Deps = {/* your dependencies here */};
+
+const Type = 'YOUR_TYPE' as const;
+
+export const Schema = z.object({
+    /* your schema here */
+});
+
+type Command = z.infer<typeof Schema>;
+type Result = Awaited<ReturnType<typeof handler>>;
+export type Definition = { [Type]: { command: Command; result: Result } };
+
+const handler = async (envelope: Envelope<Command>, deps: Deps) => {
+// your handler code here
+};
+
+export const Factory = (deps: Deps) => (query: Envelope<Command>) => handler(query, deps);
+```
+</Aside>
+
+> More examples are available [on Github](https://github.com/Plopix/missive.js/tree/main/examples/shared/src/domain/use-cases).
+
+## Define your bus(es)
+
+Once you have your handler(s) ready, you can create your bus(es) and register your handler(s).
+
+<CreateBus />
+
+> More examples are available [on Github](https://github.com/Plopix/missive.js/blob/main/examples/shared/src/core/buses.server.ts).
+
+## Dispatch an intent
+
+From there you can use the preferred approach to inject the bus(es) in your application and dispatch an intent.
+
+<Disptach />
+
+Enjoy fully typed code and a clean architecture!
+
+> More examples are available [on Github](https://github.com/Plopix/missive.js/blob/main/examples/cli/src/index.ts).
+
+## How does it work?
+
+<HowDoesItWork />

@@ -1,0 +1,10 @@
+---
+title: Install
+---
+
+```typescript
+type CommandDefitions = SendRegistrationEmailDefinition & SendNotificationDefinition;
+const bus = createBus<'command', CommandDefitions>();
+
+bus.register('sendRegistrationEmail', Schema, Factory({ mailer }));
+```

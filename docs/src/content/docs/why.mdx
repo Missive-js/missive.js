@@ -1,0 +1,105 @@
+---
+title: Why Missive.js?
+description: A Service Bus concept inspired by CQRS and Clean Architecture with Envelopes and Stamps
+---
+
+import { Steps, Aside } from '@astrojs/starlight/components';
+import HowDoesItWork from './includes/how-does-it-work.mdx';
+
+As a developer, whether you primarily work on the backend using frameworks like NestJS, Express, Koa, or Fastify, where your focus is
+solely on backend services, or you focus on frontend development with modern tools like Next.js, Remix, or Astro that integrate backend
+functionality through Backend for Frontend (BFF) patterns, you often need to build and manage server-side code.
+
+For pure backend applications, maintaining clarity and structure as your codebase grows can be challenging. Business logic, API handling,
+and middleware can become intertwined, leading to complex, tightly coupled systems that are difficult to scale and maintain. On the other
+hand, for frontend frameworks that incorporate backend logic (BFF), frontend and backend concerns can intermingle, further complicating the
+separation of responsibilities and maintainability.
+
+Missive.js offers a solution by bringing the principles of CQRS (Command Query Responsibility Segregation) and Clean Architecture into your
+projects, whether you are building standalone backend services, frontend applications with backend capabilities, or bridging both. Missive.js
+helps you build modular, maintainable, and scalable systems that cleanly separate concerns and promote best practices.
+
+## Problem that it solves
+
+Traditional approaches to building backend logic, whether as standalone services or within frontend-integrated frameworks (BFF), often suffer from:
+
+-   **Tightly coupled code**: Business logic, API routes, and middleware are often tightly bound together, making it difficult to introduce changes or
+    extensions without affecting multiple parts of the application.
+-   **Difficult scaling**: As applications grow, monolithic codebases become harder to manage, leading to more bugs and slower development cycles.
+-   **Lack of modularity**: Reusing components or logic becomes challenging, especially when different parts of your application need to interact
+    in a loosely coupled manner.
+-   **Observability and debugging**: Understanding how data flows through your system, tracking errors, and monitoring performance can be challenging
+    without clear separation of concerns.
+
+## How it helps
+
+Missive.js addresses these challenges by introducing a Service Bus pattern inspired by CQRS and Clean Architecture principles. It provides a
+centralized system for handling Commands, Queries, and Events, allowing you to build modular and decoupled components that are easy to manage and scale.
+
+1. **Separation of concerns**: Missive.js helps you clearly separate different types of operations:
+
+-   **Commands**: Actions that mutate(change) the state of your application, such as creating a new user or updating a profile.
+-   **Queries**: Requests for information that do not alter the state, like fetching user data or retrieving a list of products.
+-   **Events**: Notifications about state changes that can be handled in an asynchronous manner, useful for integrating with other systems or services.
+
+2. **Middleware system**: Missive.js includes a powerful middleware system that allows you to inject cross-cutting concerns, such as:
+
+-   **Logging**: Consistent logging across all operations, providing centralized insight into your application's behavior.
+-   **Validation**: Reusable validation logic that ensures all incoming data adheres to your application's requirements before it reaches the handlers.
+-   **Authorization**: Easy-to-implement access control checks that run before commands or queries are processed.
+
+This middleware architecture is familiar if you've used libraries like Express, Fastify, Koa, etc. making it intuitive for both backend and frontend developers.
+It centralizes the processing logic, making your code cleaner and easier to maintain.
+
+## How does it work?
+
+<HowDoesItWork />
+
+### Example
+
+<Steps>
+
+1.  Create the Command bus
+
+    ```typescript
+    type CommandDefitions = SendRegistrationEmailDefinition & SendNotificationDefinition;
+    const bus = createBus<'command', CommandDefitions>();
+
+    bus.register('sendRegistrationEmail', Schema, Factory({ mailer }));
+    ```
+
+2.  Dispatch an intent
+    ```typescript
+    const intent = bus.createIntent('sendRegistrationEmail', { email: 'plopix@example.com' });
+    // ...
+    const { envelope, result } = await bus.dispatch(intent);
+    ```
+
+</Steps>
+
+<Aside type="tip" title="Why can't I inject the intent directly into the handler?">
+_Why should you use a service bus in the first place?!_
+
+```typescript
+const command = { userId: 'xyx' };
+const result = await removeUser(command, deps);
+```
+
+> It seems way simpler!
+
+This is a common question, and the answer lies in the benefits of using a Service Bus to promote decoupling and a clear separation of concerns.
+
+-   **Centralized control**: By routing all `commands`, `queries`, and `events` through a centralized bus, you gain a consistent point of control.
+    This allows you to easily implement global concerns like logging, validation, or error handling in a single place rather than duplicating
+    logic across multiple handlers. See it likes an http server that routes requests to the right handler.
+
+-   **Decoupling of _intent_ and execution**: Sending an intent (e.g., a command or query) through a service bus decouples the sender from the handler.
+    This means the sender does not need to know which handler processes the intent or how it's executed, allowing for more flexibility and easier changes.
+    This decoupling is crucial for scaling your application as new features are added, or existing ones are modified.
+
+-   **Support for Advanced Patterns**: A service bus allows you to implement more advanced architectural patterns like:
+    -   _Saga Orchestration_: Managing distributed transactions and workflows by coordinating multiple services or operations through a central mechanism.
+    -   _Message Replay_: Replaying past events to rebuild state or debug issues.
+        \_ _Retry Policies_: Implementing automatic retries for operations that might fail due to transient issues, improving the resilience of your application.
+
+</Aside>

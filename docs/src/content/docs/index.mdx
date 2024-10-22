@@ -10,91 +10,74 @@ hero:
         file: ../../assets/bus.svg
     actions:
         - text: Get Started
-          link: /missive.js/guides/getting-started/
-          icon: right-arrow
+          link: /missive.js/guides/getting-started
+          icon: open-book
         - text: In a nutshell
           link: '#in-a-nutshell'
           icon: right-arrow
           variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
-import { Code } from '@astrojs/starlight/components';
-import { Steps } from '@astrojs/starlight/components';
+import { Card, CardGrid, LinkCard, Steps } from '@astrojs/starlight/components';
+import Install from './includes/steps/install.mdx';
+import CreateHandler from './includes/steps/create-handler.mdx';
+import DefineBus from './includes/steps/create-bus.mdx';
+import Dispatch from './includes/steps/dispatch.mdx';
 
-## Why
+## Why did we build Missive.js?
 
-We love clean architecture and CQRS, we didn't find any simple Service Bus that fits our needs:
+We love clean architecture and CQRS, we didn't find any simple Service Bus that fits our needs. More details in the [full article](/missive.js/why).
 
--   **Easy to use**: Typescript first, simple, and easy to use.
--   **Type-safe**: Define your `query`, `command` or `event` using a [Zod schema](https://zod.dev) for validation and type inference.
--   **Fully-typed**: The `bus` instance is fully typed. _(You'll have auto-completion for free!)_
--   **Middlewares**: Register middlewares to leverage the full power of the service bus.
--   **Envelopes and Stamps**: Handle cross-cutting concerns with Envelopes and Stamps.
-
-All of this in a single package with 1 dependency, no magic, just what you need and all Open Source.
+<CardGrid stagger>
+    <Card title="Easy to use" icon="rocket">
+        Simple, pragmatic, super lightweight, no magic, just what you need and all Open Source with only 1 (peer)
+        dependency (zod).
+    </Card>
+    <Card title="Agnostic" icon="puzzle">
+        You can use it with any framework or library, wether you're fully backend or backend for frontend, we got you
+        covered.
+    </Card>
+    <Card title="Type-safe" icon="seti:typescript">
+        Define your `query`, `command` or `event` using a [Zod schema](https://zod.dev) for validation and type
+        inference. The `bus` instance is fully typed. _(You'll have auto-completion for free!)_
+    </Card>
+    <Card title="Middlewares" icon="open-book">
+        Can we call it a Service Bus without Middlewares? _(we don't)_. Register middlewares to leverage the full power
+        of the service bus.
+    </Card>
+    <Card title="Envelopes and Stamps" icon="email">
+        Handle cross-cutting concerns with Envelopes and Stamps.
+    </Card>
+</CardGrid>
 
 ## In a nutshell
 
 <Steps>
 
-1. Define your `query`, `command` or `event` usind a [Zod schema](https://zod.dev) for validation and type inference.
+1. Install it
 
-    ```typescript
-    // a key that identify the use case and on which you'll have auto-completion to create an intent
-    export const Type = 'sendRegistrationEmail' as const;
+    <Install />
 
-    // the schema to validate the intent
-    export const Schema = z.object({
-        email: z.string().email(),
-    });
+2. Define your handler for `query`, `command` or `event` using a [Zod schema](https://zod.dev) for validation and type inference.
 
-    type Command = z.infer<typeof Schema>;
-    type Result = Awaited<ReturnType<typeof handler>>;
+    <CreateHandler />
 
-    // the definition of this use-case that will be passed to the service bus
-    export type Definition = { [Type]: { command: Command; result: Result } };
+3. Create a `bus` instance with all your definitions
 
-    // the handler to handle the intent
-    const handler = async (envelope: Envelope<Command>, deps: Deps) => {
-        const { email } = envelope.message;
-        await deps.mailer('subject', email, 'plop', { html: 'html', text: 'text' });
-        return { success: true };
-    };
+    <DefineBus />
 
-    // the factory to create the handler with the dependencies you may need
-    export const Factory = (deps: Deps) => (query: Envelope<Command>) => handler(query, deps);
-    ```
+4. Dispatch an intent
 
-2. Create a `bus` instance with all your definitions
-
-    ```typescript
-    type CommandDefitions = SendRegistrationEmailDefinition & SendNotificationDefinition;
-    const bus = createBus<'command', CommandDefitions>();
-
-    bus.register('sendRegistrationEmail', Schema, Factory({ mailer }));
-    ```
-
-3. Dispatch an intent
-    ```typescript
-    const intent = bus.createIntent('sendRegistrationEmail', { email: 'plopix@example.com' });
-    // ...
-    const { envelope, result } = await bus.dispatch(intent);
-    ```
+    <Dispatch />
 
 </Steps>
 
+## Guides
+
 <CardGrid>
-    <Card title="Update content" icon="pencil">
-        Edit `src/content/docs/index.mdx` to see this page change.
-    </Card>
-    <Card title="Add new content" icon="add-document">
-        Add Markdown or MDX files to `src/content/docs` to create new pages.
-    </Card>
-    <Card title="Configure your site" icon="setting">
-        Edit your `sidebar` and other config in `astro.config.mjs`.
-    </Card>
-    <Card title="Read the docs" icon="open-book">
-        Learn more in [the Starlight Docs](https://starlight.astro.build/).
-    </Card>
+    <LinkCard
+        title="Getting Started"
+        href="/missive.js/guides/getting-started"
+        description="Configure Starlight to support multiple languages."
+    />
 </CardGrid>

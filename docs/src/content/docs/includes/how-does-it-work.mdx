@@ -1,0 +1,36 @@
+---
+title: How does it work?
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+With Missive.js, an _intent_ is either a `command`, a `query`, or an `event` and it is created using the specialized bus.
+Usually you will have 3 different buses:
+
+-   **Query Bus**: For read-only operations that retrieve data.
+-   **Command Bus**: For operations that mutate application state.
+-   **Event Bus**: For broadcasting changes and triggering asynchronous actions.
+
+Here's how it works:
+
+<Steps>
+1. You begin by creating an _intent_. This could be a `command` (e.g., to create a new user), a query (e.g., to fetch product details), or an event (e.g., an order being placed).
+   At the point of creation, the _intent_ is validated to ensure it has the correct structure and necessary parameters, meeting all predefined requirements.
+
+2. Once returned (or later in the lifecycle of your application), you dispatch the intent to the bus.
+
+3. On dispatch, the bus wraps the _intent_ in an Envelope.
+
+4. The Envelope then flows through the series of configured middleware functions. These middleware can:
+
+    - log relevant information for monitoring
+    - apply additional business logic or validations as needed
+    - attach Stamps to the Envelope. Stamps serve as markers influencing how the intent is processed.
+    - observe the result of the `command` and dispatch events based on the outcome.
+
+5. Finally, the Envelope reaches the handler defined for the Intent. The handler processes the intent based on the information and stamps within the Envelope, and returns the result,
+   which could be data, a confirmation, or any other type of response.
+
+</Steps>
+This structured pipeline ensures that intents are processed in a controlled and consistent manner, allowing for flexibility in adding features like logging, validation, and custom behavior, 
+all while keeping the core business logic clean and maintainable.

@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { queryBus, commandBus } from 'missive.js-shared-code-example';
+import { queryBus } from 'missive.js-shared-code-example';
 
 const loader = async () => {
     const getUserQuery = queryBus.createIntent('getUser', { email: 'plopix@example.com' });

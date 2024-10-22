@@ -75,6 +75,10 @@ serve-cli-example: ## Run the CLI Example
 serve-remix-run-example: ## Run the Remix Run Example
 	@$(PACKAGE_MANAGER) run dev --filter=missive.js-remix-run-example
 
+.PHONY: serve-astro-example
+serve-astro-example: ## Run the Astro Example
+	@$(PACKAGE_MANAGER) run dev --filter=missive.js-astro-example
+
 .PHONY: serve-nextjs-example
 serve-nextjs-example: ## Run the Next JS Example
 	@$(PACKAGE_MANAGER) run dev --filter=missive.js-nextjs-example
