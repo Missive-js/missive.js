@@ -62,8 +62,8 @@ It centralizes the processing logic, making your code cleaner and easier to main
 1.  Create the Command bus
 
     ```typescript
-    type CommandDefitions = SendRegistrationEmailDefinition & SendNotificationDefinition;
-    const bus = createBus<'command', CommandDefitions>();
+    type CommandHandlerRegistry = SendRegistrationEmailDefinition & SendNotificationDefinition;
+    const bus = createCommandBus<CommandHandlerRegistry>();
 
     bus.register('sendRegistrationEmail', Schema, Factory({ mailer }));
     ```
