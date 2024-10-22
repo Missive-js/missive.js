@@ -1,10 +1,9 @@
 import { z } from 'zod';
 import { UserCreatedEventStamp } from '../contracts/bus.js';
-import { Envelope } from 'missive.js';
+import { CommandHandlerDefinition, Envelope } from 'missive.js';
 
 type Deps = {};
 
-export const createUserCommandType = 'createUser' as const;
 export const createUserCommandSchema = z.object({
     firstname: z.string(),
     lastname: z.string(),
@@ -12,12 +11,7 @@ export const createUserCommandSchema = z.object({
 });
 type Command = z.infer<typeof createUserCommandSchema>;
 type Result = Awaited<ReturnType<typeof handler>>;
-export type CreateUserHandlerDefinition = {
-    [createUserCommandType]: {
-        command: Command;
-        result: Result;
-    };
-};
+export type CreateUserHandlerDefinition = CommandHandlerDefinition<'createUser', Command, Result>;
 
 const handler = async (envelope: Envelope<Command>, deps: Deps) => {
     const { firstname, lastname, email } = envelope.message;

@@ -1,13 +1,25 @@
 import { Schema as ZodSchema } from 'zod';
 import { createEnvelope, Envelope } from './envelope.js';
+import { Prettify, ReplaceKeys } from './utils.js';
 
 type BusKinds = 'query' | 'command' | 'event';
 
 type MessageRegistryType<BusKind extends BusKinds> = Record<string, HandlerDefinition<BusKind>>;
+type CommandMessageRegistryType = Record<string, HandlerDefinition<'command'>>;
+type QueryMessageRegistryType = Record<string, HandlerDefinition<'query'>>;
+type EventMessageRegistryType = Record<string, HandlerDefinition<'event'>>;
+
 type MessageRegistry<
     BusKind extends BusKinds,
     HandlerDefinitions extends MessageRegistryType<BusKind>,
 > = HandlerDefinitions[keyof HandlerDefinitions][BusKind];
+
+type CommandMessageRegistry<HandlerDefinitions extends CommandMessageRegistryType> =
+    HandlerDefinitions[keyof HandlerDefinitions];
+type QueryMessageRegistry<HandlerDefinitions extends QueryMessageRegistryType> =
+    HandlerDefinitions[keyof HandlerDefinitions];
+type EventMessageRegistry<HandlerDefinitions extends EventMessageRegistryType> =
+    HandlerDefinitions[keyof HandlerDefinitions];
 
 type TypedMessage<Message, MessageName extends string = string> = Message & { __type: MessageName };
 
@@ -16,31 +28,96 @@ export type Middleware<BusKind extends BusKinds, HandlerDefinitions extends Mess
     next: () => Promise<void>,
 ) => Promise<void>;
 
-type MessageHandler<Q, Result> = (envelope: Envelope<Q>) => Promise<Result>;
-type HandlerDefinition<BusKind extends BusKinds, Q = object, Result = object> = {
-    [key in BusKind]: Q;
+export type GenericMiddleware = Middleware<any, any>;
+
+export type CommandMiddleware<HandlerDefinitions extends CommandMessageRegistryType> = Middleware<
+    'command',
+    HandlerDefinitions
+>;
+export type QueryMiddleware<HandlerDefinitions extends QueryMessageRegistryType> = Middleware<
+    'query',
+    HandlerDefinitions
+>;
+export type EventMiddleware<HandlerDefinitions extends EventMessageRegistryType> = Middleware<
+    'event',
+    HandlerDefinitions
+>;
+
+type MessageHandler<Intent, Result> = (envelope: Envelope<Intent>) => Promise<Result>;
+type HandlerDefinition<BusKind extends BusKinds, Intent = object, Result = object> = {
+    [key in BusKind]: Intent;
 } & {
     result: Result;
 };
 
+export type CommandHandlerDefinition<Name extends string, Command = object, Result = object> = {
+    [key in Name]: {
+        command: Command;
+        result: Result;
+    };
+};
+export type QueryHandlerDefinition<Name extends string, Query = object, Result = object> = {
+    [key in Name]: {
+        query: Query;
+        result: Result;
+    };
+};
+export type EventHandlerDefinition<Name extends string, Event = object, Result = object> = {
+    [key in Name]: {
+        event: Event;
+        result: Result;
+    };
+};
+
+type ExtractedMessage<
+    BusKind extends BusKinds,
+    HandlerDefinitions extends MessageRegistryType<BusKind>,
+    MessageName extends keyof HandlerDefinitions & string,
+> = TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>;
+
 export type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = {
     use: (middleware: Middleware<BusKind, HandlerDefinitions>) => void;
-    register: <MessageKind extends keyof HandlerDefinitions & string>(
-        type: MessageKind,
-        schema: ZodSchema<HandlerDefinitions[MessageKind][BusKind]>,
-        handler: MessageHandler<HandlerDefinitions[MessageKind][BusKind], HandlerDefinitions[MessageKind]['result']>,
+    register: <MessageName extends keyof HandlerDefinitions & string>(
+        type: MessageName,
+        schema: ZodSchema<HandlerDefinitions[MessageName][BusKind]>,
+        handler: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>,
     ) => void;
-    dispatch: <MessageKind extends keyof HandlerDefinitions & string>(
-        intent: TypedMessage<HandlerDefinitions[MessageKind][BusKind], MessageKind>,
+    dispatch: <MessageName extends keyof HandlerDefinitions & string>(
+        intent: TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>,
     ) => Promise<{
-        envelope: Envelope<HandlerDefinitions[MessageKind][BusKind]>;
-        result: HandlerDefinitions[MessageKind]['result'] | undefined;
+        envelope: Envelope<HandlerDefinitions[MessageName][BusKind]>;
+        result: HandlerDefinitions[MessageName]['result'] | undefined;
     }>;
-    createIntent: <MessageKind extends keyof HandlerDefinitions & string>(
-        type: MessageKind,
-        intent: HandlerDefinitions[MessageKind][BusKind],
-    ) => TypedMessage<HandlerDefinitions[MessageKind][BusKind], MessageKind>;
+    createIntent: <MessageName extends keyof HandlerDefinitions & string>(
+        type: MessageName,
+        intent: HandlerDefinitions[MessageName][BusKind],
+    ) => TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>;
 };
+
+type CommandBus<HandlerDefinitions extends CommandMessageRegistryType> = ReplaceKeys<
+    MissiveBus<'command', HandlerDefinitions>,
+    { createCommand: 'createIntent'; submitCommand: 'dispatch' }
+>;
+export type MissiveCommandBus<HandlerDefinitions extends CommandMessageRegistryType> = Prettify<
+    CommandBus<HandlerDefinitions>
+>;
+
+type QueryBus<HandlerDefinitions extends QueryMessageRegistryType> = ReplaceKeys<
+    MissiveBus<'query', HandlerDefinitions>,
+    { createQuery: 'createIntent'; query: 'dispatch' }
+>;
+
+export type MissiveQueryBus<HandlerDefinitions extends QueryMessageRegistryType> = Prettify<
+    QueryBus<HandlerDefinitions>
+>;
+
+type EventBus<HandlerDefinitions extends EventMessageRegistryType> = ReplaceKeys<
+    MissiveBus<'event', HandlerDefinitions>,
+    { createEvent: 'createIntent'; dispatchEvent: 'dispatch' }
+>;
+export type MissiveEventBus<HandlerDefinitions extends EventMessageRegistryType> = Prettify<
+    EventBus<HandlerDefinitions>
+>;
 
 type HandlerConfig<
     BusKind extends BusKinds,
@@ -123,7 +200,7 @@ export const createBus = <BusKind extends BusKinds, HandlerDefinitions extends M
     };
 
     const dispatch = async <MessageName extends keyof HandlerDefinitions & string>(
-        message: TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>,
+        message: ExtractedMessage<BusKind, HandlerDefinitions, MessageName>,
     ): Promise<{
         envelope: Envelope<HandlerDefinitions[MessageName][BusKind]>;
         result: HandlerDefinitions[MessageName]['result'] | undefined;
@@ -147,7 +224,7 @@ export const createBus = <BusKind extends BusKinds, HandlerDefinitions extends M
     const createIntent = <MessageName extends keyof HandlerDefinitions & string>(
         type: MessageName,
         intent: HandlerDefinitions[MessageName][BusKind],
-    ): TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName> => {
+    ): ExtractedMessage<BusKind, HandlerDefinitions, MessageName> => {
         const entry = registry[type];
         if (!entry) {
             throw new Error(`No handler found for type: ${type}`);
@@ -164,5 +241,47 @@ export const createBus = <BusKind extends BusKinds, HandlerDefinitions extends M
         register: registerHandler,
         dispatch,
         createIntent,
+    };
+};
+
+export const createCommandBus = <HandlerDefinitions extends CommandMessageRegistryType>(args?: {
+    middlewares?: CommandMiddleware<HandlerDefinitions>[];
+    handlers?: HandlerConfig<'command', HandlerDefinitions>[];
+}): MissiveCommandBus<HandlerDefinitions> => {
+    const commandBus = createBus<'command', HandlerDefinitions>(args);
+
+    return {
+        use: commandBus.use,
+        register: commandBus.register,
+        submitCommand: commandBus.dispatch,
+        createCommand: commandBus.createIntent,
+    };
+};
+
+export const createQueryBus = <HandlerDefinitions extends QueryMessageRegistryType>(args?: {
+    middlewares?: QueryMiddleware<HandlerDefinitions>[];
+    handlers?: HandlerConfig<'query', HandlerDefinitions>[];
+}): MissiveQueryBus<HandlerDefinitions> => {
+    const queryBus = createBus<'query', HandlerDefinitions>(args);
+
+    return {
+        use: queryBus.use,
+        register: queryBus.register,
+        query: queryBus.dispatch,
+        createQuery: queryBus.createIntent,
+    };
+};
+
+export const createEventBus = <HandlerDefinitions extends EventMessageRegistryType>(args?: {
+    middlewares?: EventMiddleware<HandlerDefinitions>[];
+    handlers?: HandlerConfig<'event', HandlerDefinitions>[];
+}): MissiveEventBus<HandlerDefinitions> => {
+    const eventBus = createBus<'event', HandlerDefinitions>(args);
+
+    return {
+        use: eventBus.use,
+        register: eventBus.register,
+        dispatchEvent: eventBus.dispatch,
+        createEvent: eventBus.createIntent,
     };
 };

@@ -1,5 +1,5 @@
-import { createBus } from 'missive.js';
-import { CommandDefitions, EventDefitions, QueryDefitions } from '../domain/contracts/bus.js';
+import { createBus, createCommandBus, createEventBus, createQueryBus } from 'missive.js';
+import { CommandHandlerRegistry, EventHandlerRegistry, QueryHandlerRegistry } from '../domain/contracts/bus.js';
 import { createEventsMiddleware } from '../domain/middlewares/events.js';
 import { createLoggerMiddleware } from '../domain/middlewares/logger.js';
 import { createCreateUserHandler, createUserCommandSchema } from '../domain/use-cases/create-user.js';
@@ -11,17 +11,17 @@ import { createUserRemovedHandler, userRemovedEventSchema } from '../domain/use-
 
 const loggerMiddleware = createLoggerMiddleware();
 
-const queryBus = createBus<'query', QueryDefitions>();
+const queryBus = createQueryBus<QueryHandlerRegistry>();
 queryBus.use(loggerMiddleware);
 queryBus.register('getUser', getUserQuerySchema, createGetUserHandler({}));
 
-const eventBus = createBus<'event', EventDefitions>();
+const eventBus = createEventBus<EventHandlerRegistry>();
 eventBus.use(loggerMiddleware);
 eventBus.register('userCreated', userCreatedEventSchema, createUserCreatedHandler({}));
 eventBus.register('userCreated', userCreatedEventSchema, createUserCreatedHandler2({}));
 eventBus.register('userRemoved', userRemovedEventSchema, createUserRemovedHandler({}));
 
-const commandBus = createBus<'command', CommandDefitions>({
+const commandBus = createCommandBus<CommandHandlerRegistry>({
     middlewares: [loggerMiddleware, createEventsMiddleware(eventBus)],
     handlers: [
         { messageName: 'createUser', schema: createUserCommandSchema, handler: createCreateUserHandler({}) },

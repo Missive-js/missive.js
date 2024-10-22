@@ -1,4 +1,4 @@
-import { Envelope } from 'missive.js';
+import { CommandHandlerDefinition, Envelope, EventHandlerDefinition } from 'missive.js';
 import { z } from 'zod';
 
 type Deps = {};
@@ -9,12 +9,7 @@ export const userCreatedEventSchema = z.object({
 });
 export type Event = z.infer<typeof userCreatedEventSchema>;
 type Result = Awaited<ReturnType<typeof handler>>;
-export type UserCreatedHandlerDefinition = {
-    [userCreatedEventType]: {
-        event: Event;
-        result: Result;
-    };
-};
+export type UserCreatedHandlerDefinition = EventHandlerDefinition<'userCreated', Event, Result>;
 
 const handler = async (envelope: Envelope<Event>, deps: Deps) => {
     const { userId } = envelope.message;

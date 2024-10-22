@@ -1,7 +1,7 @@
 ---
-import { queryBus, commandBus } from 'missive.js-shared-code-example';
-const getUserQuery = queryBus.createIntent('getUser', { email: 'plopix@example.com' });
-const { result } = await queryBus.dispatch(getUserQuery);
+import { queryBus } from 'missive.js-shared-code-example';
+const getUserQuery = queryBus.createQuery('getUser', { email: 'plopix@example.com' });
+const { result } = await queryBus.query(getUserQuery);
 ---
 
 <html lang="en">
