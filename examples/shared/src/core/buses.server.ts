@@ -1,4 +1,4 @@
-import { createBus, createCommandBus, createEventBus, createQueryBus } from 'missive.js';
+import { createCommandBus, createEventBus, createQueryBus } from 'missive.js';
 import { CommandHandlerRegistry, EventHandlerRegistry, QueryHandlerRegistry } from '../domain/contracts/bus.js';
 import { createEventsMiddleware } from '../domain/middlewares/events.js';
 import { createLoggerMiddleware } from '../domain/middlewares/logger.js';

@@ -14,13 +14,6 @@ type MessageRegistry<
     HandlerDefinitions extends MessageRegistryType<BusKind>,
 > = HandlerDefinitions[keyof HandlerDefinitions][BusKind];
 
-type CommandMessageRegistry<HandlerDefinitions extends CommandMessageRegistryType> =
-    HandlerDefinitions[keyof HandlerDefinitions];
-type QueryMessageRegistry<HandlerDefinitions extends QueryMessageRegistryType> =
-    HandlerDefinitions[keyof HandlerDefinitions];
-type EventMessageRegistry<HandlerDefinitions extends EventMessageRegistryType> =
-    HandlerDefinitions[keyof HandlerDefinitions];
-
 type TypedMessage<Message, MessageName extends string = string> = Message & { __type: MessageName };
 
 export type Middleware<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = (
@@ -75,7 +68,7 @@ type ExtractedMessage<
     MessageName extends keyof HandlerDefinitions & string,
 > = TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>;
 
-export type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = {
+type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = {
     use: (middleware: Middleware<BusKind, HandlerDefinitions>) => void;
     register: <MessageName extends keyof HandlerDefinitions & string>(
         type: MessageName,
@@ -133,7 +126,7 @@ type HandlerConfig<
         : never
     : never;
 
-export const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>>(args?: {
+const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>>(args?: {
     middlewares?: Middleware<BusKind, HandlerDefinitions>[];
     handlers?: HandlerConfig<BusKind, HandlerDefinitions>[];
 }): MissiveBus<BusKind, HandlerDefinitions> => {
