@@ -39,10 +39,14 @@ export default defineConfig({
                     label: 'Guides',
                     autogenerate: { directory: 'guides' },
                 },
-                // {
-                //     label: 'Reference',
-                //     autogenerate: { directory: 'guides copy' },
-                // },
+                {
+                    label: 'Contributing',
+                    slug: 'contributing',
+                    badge: {
+                        text: 'we need you!',
+                        variant: 'success',
+                    },
+                },
             ],
         }),
         tailwind({

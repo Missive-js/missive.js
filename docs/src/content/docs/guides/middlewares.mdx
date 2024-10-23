@@ -3,6 +3,91 @@ title: Middlewares
 description: A guide on how to first use Middlwares with the Service Bus
 ---
 
-## Middlwares
+import { Steps } from '@astrojs/starlight/components';
 
-TODO
+Missive.js includes a powerful middleware system in each bus to process intents (`command`, `query`, and `event`) in a flexible and extendable manner. 
+Middleware allows you to insert cross-cutting concerns such as validation, logging, authentication, error handling, and more into the 
+processing pipeline without duplicating code across individual handlers. This makes it easy to maintain and scale your application while keeping 
+business logic clean and separated.
+
+## How middleware works
+
+Middleware in Missive.js works similarly to middleware in other JavaScript frameworks like Express, Koa or Fastify. Each middleware function wraps around the 
+processing of an intent, giving you control over the flow and transformation of the intent as it moves through the service bus. 
+
+Bus Missive.js has its concept of _Envelope_ and _Stamps_, which are used to pass data and metadata between middlewares and handlers, allowing you to 
+inject additional information or context into the processing pipeline.
+
+Here's how it works:
+
+<Steps>
+1. Intent Dispatch
+
+    When an intent is dispatched to the service bus, it is immediately wrapped in an _Envelope_.
+
+2. Middleware Execution
+
+    The _Envelope_ passes through each middleware sequentially. Each middleware function receives the intent wrapped in the _Envelope_ and a reference to 
+    the next function, which calls the next middleware or the handler in the chain.
+
+    Middleware can, for instance, do the following:
+        - Inspect the intent and its _Envelope_.
+        - Transform or add _Stamps_ to the intent or its _Envelope_.
+        - Validate the intent's data or context before it reaches the handler.
+        - Log the intent's details for monitoring or auditing purposes.
+        - Handle errors by catching exceptions from downstream middlewares or the handler.
+
+    There is no limit:
+     - to the number of middlewares you can add to a bus, allowing you to create complex processing pipelines with ease.
+     - to what you can do with a middleware
+
+3. Handler Execution
+
+    After the intent passes through all the middleware, it reaches the handler defined for the specific intent type. The handler processes the intent based on
+    its business logic and and _Stamps_ `handled` is added to the envelope.
+
+</Steps>
+
+## Creating Middleware
+
+Middleware functions in Missive.js are simple, functions that take in two parameters:
+
+- an _Intent_ wrapped in the _Envelope_: te current intent being processed.
+- _next_: A function that calls the next middleware or handler in the pipeline.
+
+Here's an example middleware function:
+```typescript
+async (envelope, next) => {
+    console.log('Logger Middleware: Message Received', envelope.message);
+    await next();
+    console.log('Logger Middleware: Message Handled', envelope.message);
+}
+```
+
+### Using Middleware
+
+To use middleware in Missive.js, you attach it to the service bus when configuring it. 
+Middleware functions are applied in the order they are added, forming a processing pipeline.
+
+```typescript
+const loggerMiddleware = createLoggerMiddleware();
+const queryBus = createQueryBus<QueryHandlerRegistry>();
+queryBus.use(loggerMiddleware);
+queryBus.register('getUser', getUserQuerySchema, createGetUserHandler({}));
+```
+
+## Best Practices
+
+- **Order Matters**: Middlewares are executed in the order they are registered. Place essential middleware, early in the chain to prevent 
+   invalid or unauthorized intents from reaching the handler.
+- **Keep Middleware Focused**: Each middleware should handle one concern to keep the pipeline clean and maintainable.
+- **Mutation**: Avoid mutating the intent or its _Envelope_ in a middleware unless necessary. Instead, use _Stamps_ to pass data between middlewares and handlers.
+
+
+## Summary
+Middleware in Missive.js offers a powerful and flexible way to manage the flow of intents through your system. By inserting middleware into 
+the pipeline, you can centralize cross-cutting concerns like validation, logging, and error handling, ensuring that your codebase remains modular, 
+clean, and easy to scale.
+
+With these principles in mind, you can build a robust, maintainable architecture that allows for complex scenarios like retry policies, detailed logging,
+and consistent validation across your entire application.
