@@ -5,7 +5,7 @@ import tailwind from '@astrojs/tailwind';
 
 import react from '@astrojs/react';
 
-const github = 'https://github.com/plopix/missive.js';
+const github = 'https://github.com/missive-js/missive.js';
 const githubURL = new URL(github);
 const githubPathParts = githubURL.pathname.split('/');
 const title = 'Missive.js';
