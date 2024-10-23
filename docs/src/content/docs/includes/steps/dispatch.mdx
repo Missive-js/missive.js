@@ -3,7 +3,7 @@ title: Dispatch
 ---
 
 ```typescript
-const intent = bus.createIntent('sendRegistrationEmail', { email: 'plopix@example.com' });
+const intent = bus.createCommand('sendRegistrationEmail', { email: 'plopix@example.com' });
 // ...
 const { envelope, result } = await bus.dispatch(intent);
 ```

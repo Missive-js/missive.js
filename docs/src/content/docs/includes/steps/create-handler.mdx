@@ -3,19 +3,15 @@ title: Create Handler
 ---
 
 ```typescript
-// a key that identify the use case and on which you'll have auto-completion to create an intent
-export const Type = 'sendRegistrationEmail' as const;
-
 // the schema to validate the intent
 export const Schema = z.object({
     email: z.string().email(),
 });
 
+// the Types to use in the bus configuration
 type Command = z.infer<typeof Schema>;
 type Result = Awaited<ReturnType<typeof handler>>;
-
-// the definition of this use-case that will be passed to the service bus
-export type Definition = { [Type]: { command: Command; result: Result } };
+export type Definition = CommandHandlerDefinition<'createUser', Command, Result>;
 
 // the handler to handle the intent
 const handler = async (envelope: Envelope<Command>, deps: Deps) => {

@@ -1,4 +1,4 @@
-import { CommandMiddleware, Middleware } from 'missive.js';
+import { CommandMiddleware } from 'missive.js';
 import { CommandHandlerRegistry, EventBus, UserCreatedEventStamp, UserRemovedEventStamp } from '../contracts/bus.js';
 
 export const createEventsMiddleware =
@@ -11,7 +11,7 @@ export const createEventsMiddleware =
                 const event = eventBus.createEvent(eventStamp.context._type, {
                     userId: eventStamp.context.userId,
                 });
-                const results = await eventBus.dispatchEvent(event);
+                const results = await eventBus.dispatch(event);
                 console.log('Events Middleware: Event Dispatched', results);
             }
         }

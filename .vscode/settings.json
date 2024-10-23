@@ -20,5 +20,17 @@
     },
     "files.associations": {
         "**/*/*.css": "tailwindcss"
+    },
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/dist/*/**": true,
+        "**/coverage/*/**": true,
+        "**/tmp/*/**": true,
+        "**/.nx/*/**": true,
+        "**/.run/*/**": true,
+        "**/.astro/*/**": true,
+        "**/.next/*/**": true
     }
 }

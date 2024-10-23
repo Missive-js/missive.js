@@ -1,7 +1,7 @@
 ---
 import { queryBus } from 'missive.js-shared-code-example';
 const getUserQuery = queryBus.createQuery('getUser', { email: 'plopix@example.com' });
-const { result } = await queryBus.query(getUserQuery);
+const { result } = await queryBus.dispatch(getUserQuery);
 ---
 
 <html lang="en">

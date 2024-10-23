@@ -4,7 +4,7 @@ import { queryBus, commandBus } from 'missive.js-shared-code-example';
 
 export const loader = async () => {
     const getUserQuery = queryBus.createQuery('getUser', { email: 'plopix@example.com' });
-    const { result: user } = await queryBus.query(getUserQuery);
+    const { result: user } = await queryBus.dispatch(getUserQuery);
     return json({ user });
 };
 
@@ -14,9 +14,9 @@ export const action = async () => {
         firstname: 'Plopix',
         lastname: 'ix',
     });
-    const { result } = await commandBus.submitCommand(createUserCommand);
+    const { result } = await commandBus.dispatch(createUserCommand);
     const removeUserCommand = commandBus.createCommand('removeUser', { userId: '1234' });
-    const { result: result2 } = await commandBus.submitCommand(removeUserCommand);
+    const { result: result2 } = await commandBus.dispatch(removeUserCommand);
     return json({ result, result2 });
 };
 

@@ -16,11 +16,12 @@ type MessageRegistry<
 
 type TypedMessage<Message, MessageName extends string = string> = Message & { __type: MessageName };
 
-export type Middleware<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = (
+type Middleware<BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>> = (
     envelope: Envelope<MessageRegistry<BusKind, HandlerDefinitions>>,
     next: () => Promise<void>,
 ) => Promise<void>;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GenericMiddleware = Middleware<any, any>;
 
 export type CommandMiddleware<HandlerDefinitions extends CommandMessageRegistryType> = Middleware<
@@ -89,7 +90,7 @@ type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegi
 
 type CommandBus<HandlerDefinitions extends CommandMessageRegistryType> = ReplaceKeys<
     MissiveBus<'command', HandlerDefinitions>,
-    { createCommand: 'createIntent'; }
+    { createCommand: 'createIntent' }
 >;
 export type MissiveCommandBus<HandlerDefinitions extends CommandMessageRegistryType> = Prettify<
     CommandBus<HandlerDefinitions>

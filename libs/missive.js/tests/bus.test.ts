@@ -1,7 +1,7 @@
 import { expect, it, beforeEach, describe } from 'vitest';
 import { z, Schema } from 'zod';
 import { Envelope } from '../src/envelope';
-import { createBus, MissiveBus, Middleware } from '../src/bus';
+import { createQueryBus, MissiveQueryBus, QueryMiddleware } from '../src/bus';
 
 type MyEvents = {
     event1: { query: { foo: string }; result: { bar: number } };
@@ -9,10 +9,10 @@ type MyEvents = {
 };
 
 describe('Bus', () => {
-    let bus: MissiveBus<'query', MyEvents>;
+    let bus: MissiveQueryBus<MyEvents>;
 
     beforeEach(() => {
-        bus = createBus<'query', MyEvents>();
+        bus = createQueryBus<MyEvents>();
     });
 
     it('should register and dispatch a query event', async () => {
@@ -25,7 +25,7 @@ describe('Bus', () => {
         };
 
         bus.register('event1', schema, handler);
-        const intent = bus.createIntent('event1', { foo: 'test' });
+        const intent = bus.createQuery('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
 
         expect(result.result).toEqual({ bar: 42 });
@@ -41,7 +41,7 @@ describe('Bus', () => {
         };
         bus.register('event2', schema, handler);
 
-        const intent = bus.createIntent('event2', { baz: true });
+        const intent = bus.createQuery('event2', { baz: true });
         const result = await bus.dispatch(intent);
 
         expect(result.result).toEqual({ qux: 'success' });
@@ -56,7 +56,7 @@ describe('Bus', () => {
             return { bar: 42 };
         };
 
-        const middleware: Middleware<'query', MyEvents> = async (envelope, next) => {
+        const middleware: QueryMiddleware<MyEvents> = async (envelope, next) => {
             envelope.addStamp('middleware', { added: true });
             await next();
         };
@@ -64,7 +64,7 @@ describe('Bus', () => {
         bus.use(middleware);
         bus.register('event1', schema, handler);
 
-        const intent = bus.createIntent('event1', { foo: 'test' });
+        const intent = bus.createQuery('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
 
         expect(result.envelope.stampsOfType('middleware').length).toBe(1);

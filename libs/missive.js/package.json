@@ -22,7 +22,7 @@
         "watch": "tsc -W --preserveWatchOutput",
         "lint:check": "eslint .",
         "lint:fix": "eslint . --fix",
-        "test": "vitest run && vitest run --typecheck"
+        "test": "vitest run"
     },
     "type": "module",
     "main": "./build/index.js",

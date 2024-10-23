@@ -1,4 +1,4 @@
-import { CommandHandlerDefinition, Envelope, EventHandlerDefinition } from 'missive.js';
+import { Envelope, EventHandlerDefinition } from 'missive.js';
 import { z } from 'zod';
 
 type Deps = {};

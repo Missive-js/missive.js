@@ -3,8 +3,8 @@ title: Install
 ---
 
 ```typescript
-type CommandDefitions = SendRegistrationEmailDefinition & SendNotificationDefinition;
-const bus = createBus<'command', CommandDefitions>();
+type CommandHandlerRegistry = SendRegistrationEmailDefinition & SendNotificationDefinition;
+const bus = createCommandBus<CommandHandlerRegistry>();
 
 bus.register('sendRegistrationEmail', Schema, Factory({ mailer }));
 ```
