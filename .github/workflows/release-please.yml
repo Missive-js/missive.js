@@ -1,0 +1,22 @@
+on:
+    workflow_run:
+        workflows: ['CI']
+        types:
+            - completed
+
+permissions:
+    contents: write
+    pull-requests: write
+
+name: 📦 Release PR Generator
+
+jobs:
+    release-please:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: googleapis/release-please-action@v4
+              with:
+                  release-type: node
+                  token: ${{ secrets.GH_TOKEN }}
+                  path: libs/missive.js
+                  include-component-in-tag: true
