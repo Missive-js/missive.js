@@ -27,5 +27,6 @@
         "pnpm": "9.12.2"
     },
     "packageManager": "pnpm@9.12.2",
-    "name": "missive.js-monorepo"
+    "name": "missive.js-monorepo",
+    "version": "0.0.1"
 }
