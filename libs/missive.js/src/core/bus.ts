@@ -1,7 +1,7 @@
 import type { Schema as ZodSchema } from 'zod';
 import { createEnvelope, HandledStamp, IdentityStamp, type Envelope } from './envelope.js';
 import type { Prettify, ReplaceKeys } from '../utils/types.js';
-import type { CommandMiddleware, EventMiddleware, Middleware, QueryMiddleware } from './middleware.js';
+import type { Middleware } from './middleware.js';
 import { nanoid } from 'nanoid';
 
 export type BusKinds = 'query' | 'command' | 'event';
@@ -18,7 +18,7 @@ export type MessageRegistry<
 type TypedMessage<Message, MessageName extends string = string> = Message & { __type: MessageName };
 
 type MessageHandler<Intent, Result> = (envelope: Envelope<Intent>) => Promise<Result>;
-type HandlerDefinition<BusKind extends BusKinds, Intent = object, Result = object> = {
+export type HandlerDefinition<BusKind extends BusKinds, Intent = object, Result = object> = {
     [key in BusKind]: Intent;
 } & {
     result: Result;
@@ -184,21 +184,23 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
     ): Promise<{
         envelope: Envelope<HandlerDefinitions[MessageName][BusKind]>;
         result: HandlerDefinitions[MessageName]['result'] | undefined;
+        results: (HandlerDefinitions[MessageName]['result'] | undefined)[];
     }> => {
         const entry = registry[message.__type];
         if (!entry) {
             throw new Error(`No handler found for type: ${message.__type}`);
         }
-
         const { handlers } = entry;
         const chain = createMiddlewareChain<MessageName>(handlers);
         const envelope = await chain(message);
         return {
             envelope,
-            // this is on purpose we return the last handled result
-            // if the user wants to access the result of a specific handler, it can be done via the envelope
             result: envelope.lastStamp<HandledStamp<HandlerDefinitions[MessageName]['result']>>('missive:handled')
                 ?.body,
+            results:
+                envelope
+                    .stampsOfType<HandledStamp<HandlerDefinitions[MessageName]['result']>>('missive:handled')
+                    .map((r) => r?.body) || [],
         };
     };
 
@@ -226,13 +228,13 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
 };
 
 export const createCommandBus = <HandlerDefinitions extends CommandMessageRegistryType>(args?: {
-    middlewares?: CommandMiddleware<HandlerDefinitions>[];
+    middlewares?: Middleware<'command', HandlerDefinitions>[];
     handlers?: HandlerConfig<'command', HandlerDefinitions>[];
 }): MissiveCommandBus<HandlerDefinitions> => {
     const commandBus = createBus<'command', HandlerDefinitions>(args);
 
     return {
-        use: commandBus.use,
+        use: (middleware: Middleware<'command', HandlerDefinitions>) => commandBus.use(middleware),
         register: commandBus.register,
         dispatch: commandBus.dispatch,
         createCommand: commandBus.createIntent,
@@ -240,13 +242,13 @@ export const createCommandBus = <HandlerDefinitions extends CommandMessageRegist
 };
 
 export const createQueryBus = <HandlerDefinitions extends QueryMessageRegistryType>(args?: {
-    middlewares?: QueryMiddleware<HandlerDefinitions>[];
+    middlewares?: Middleware<'query', HandlerDefinitions>[];
     handlers?: HandlerConfig<'query', HandlerDefinitions>[];
 }): MissiveQueryBus<HandlerDefinitions> => {
     const queryBus = createBus<'query', HandlerDefinitions>(args);
 
     return {
-        use: queryBus.use,
+        use: (middleware: Middleware<'query', HandlerDefinitions>) => queryBus.use(middleware),
         register: queryBus.register,
         dispatch: queryBus.dispatch,
         createQuery: queryBus.createIntent,
@@ -254,13 +256,13 @@ export const createQueryBus = <HandlerDefinitions extends QueryMessageRegistryTy
 };
 
 export const createEventBus = <HandlerDefinitions extends EventMessageRegistryType>(args?: {
-    middlewares?: EventMiddleware<HandlerDefinitions>[];
+    middlewares?: Middleware<'event', HandlerDefinitions>[];
     handlers?: HandlerConfig<'event', HandlerDefinitions>[];
 }): MissiveEventBus<HandlerDefinitions> => {
     const eventBus = createBus<'event', HandlerDefinitions>(args);
 
     return {
-        use: eventBus.use,
+        use: (middleware: Middleware<'event', HandlerDefinitions>) => eventBus.use(middleware),
         register: eventBus.register,
         dispatch: eventBus.dispatch,
         createEvent: eventBus.createIntent,

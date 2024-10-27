@@ -5,7 +5,7 @@
     "tasks": {
         "build": {
             "dependsOn": ["build:missive.js", "^build"],
-            "outputs": ["build/**"]
+            "outputs": ["build/**", ".next/**", ".astro/**"]
         },
         "build:missive.js": {
             "dependsOn": [],

@@ -21,7 +21,7 @@ export const createEnvelope = <T>(message: T): Envelope<T> => {
     return {
         stamps,
         message,
-        addStamp: (type, body) => {
+        addStamp: <S extends Stamp>(type: S['type'], body?: S['body']) => {
             stamps.push({ type, body, date: new Date() });
         },
         stampsOfType: <S extends Stamp>(type: S['type']) => {
