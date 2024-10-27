@@ -1,8 +1,7 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-
 import tailwind from '@astrojs/tailwind';
-
+import starlightLinksValidator from 'starlight-links-validator';
 import react from '@astrojs/react';
 
 const github = 'https://github.com/missive-js/missive.js';
@@ -14,6 +13,7 @@ export default defineConfig({
     base: `${githubPathParts[2]}`,
     integrations: [
         starlight({
+            plugins: [starlightLinksValidator()],
             head: [
                 {
                     tag: 'script',
@@ -21,6 +21,7 @@ export default defineConfig({
                         src: 'https://plausible.io/js/script.js',
                         'data-domain': 'missive-js.github.io/missive.js',
                         defer: true,
+                        'is:inline': true,
                     },
                 },
             ],

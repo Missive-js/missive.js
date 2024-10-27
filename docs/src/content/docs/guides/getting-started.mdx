@@ -71,6 +71,23 @@ Enjoy fully typed code and a clean architecture!
 
 > More examples are available [on Github](https://github.com/missive-js/missive.js/blob/main/examples/cli/src/index.ts).
 
+
+## Added Stamps
+
+The Bus is going to add some Stamps to the Envelope, here is the list:
+
+    -     
+        ```typescript
+        export type IdentityStamp = Stamp<{ id: string }, 'missive:identity'>;
+        ```
+        > To identify an Envelope
+    -     
+        ```typescript
+        export type HandledStamp<R> = Stamp<R, 'missive:handled'>;
+        ```
+        > To includes the result(s) of the handler(s)
+
+
 ## How does it work?
 
 <HowDoesItWork />

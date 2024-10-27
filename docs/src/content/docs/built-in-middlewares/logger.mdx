@@ -16,47 +16,58 @@ The Logger Middleware is built-in middleware that gives you capability to add ob
 As for any Middleware, you can use it by adding it to the `bus` instance.
 
 ```typescript
-const loggerMiddleware = createLoggerMiddleware(adapter);
+const loggerMiddleware = createLoggerMiddleware({logger, adapter});
 const queryBus = createQueryBus<QueryHandlerRegistry>();
 queryBus.use(loggerMiddleware);
 ```
 
-Of course, the key is in the `adapter` that you will provide to the `createLoggerMiddleware` function. 
+Of course, the key is in the `adapter` that you can provide to the `createLoggerMiddleware` function. 
 This adapter must respect the `LoggerAdapter` interface.
+
+> Logger must respect _LoggerInterface_ which is `log(...args: unknow[]): void` and `error(...args: unknow[]): void`
 
 Here is an example: 
 
 ```typescript
-export const consoleLogger: LoggerAdapter = {
+export const adapter: LoggerAdapter = {
     processing: (identity, message, results, stamps) =>
-        console.log(
-            `Processing Envelope<${identity?.body?.id}>`,
+        logger.log(
+            `[Envelope<${identity?.body?.id}>](Processing)`,
             JSON.stringify({
                 message,
                 results,
                 stamps,
             }),
         ),
-    processed: (identity, message, results, stamps) =>
-        console.log(
-            `Processed Envelope<${identity?.body?.id}>`,
+    processed: (identity, message, results, stamps) => {
+        const timings = stamps.filter((stamp) => stamp.type === 'missive:timings')?.[0] as TimingsStamp | undefined;
+        logger.log(
+            `[Envelope<${identity?.body?.id}>](Processed${timings?.body?.total ? ` in ${(timings.body.total / 1000000).toFixed(4)} ms` : ''})`,
             JSON.stringify({
                 message,
                 results,
                 stamps,
             }),
-        ),
-    error: (identity, message, results, stamps) =>
-        console.error(
-            `Error with Envelope<${identity?.body?.id}>`,
+        );
+    },
+    error: (identity, message, results, stamps) => {
+        const timings = stamps.filter((stamp) => stamp.type === 'missive:timings')?.[0] as TimingsStamp | undefined;
+        logger.error(
+            `[Envelope<${identity?.body?.id}>](Errored${timings?.body?.total ? ` in ${(timings.body.total / 1000000).toFixed(4)} ms` : ''}`,
             JSON.stringify({
                 message,
                 results,
                 stamps,
             }),
-        ),
+        )
+    }
 };
 ```
+
+<Aside title="We got you cover!" type="tip">
+Do not copy/paste this boilerplate, if `adapter` is not passed to the `createLoggerMiddleware` function,
+it will default to the `console` `logger` and provide you with the basic adapter above.
+</Aside>
 
 ### Explanation
 
@@ -74,14 +85,24 @@ The parameters for each of those functions are:
 <Aside title="Gotcha!" type="caution">
 Those function can be `async`, the middleware will `await` for the promise to be resolved before continuing.
 Which means that you can log to a database or any other async operation BUT be careful with the performance.
-There are 2 options you can pass to the `createLoggerMiddleware` function:
-- `options.async`: the logger will not `await` for the promises to be resolved
-- `options.collect`: the logger will collect the logs without awaiting during collection, and then `await` or not based on the `async` option.
+There are 2 other parameters you can pass to the `createLoggerMiddleware` function:
+- `async`: the logger will not `await` for the promises to be resolved
+- `collect`: the logger will collect the logs without awaiting during collection, and then `await` or not based on the `async` option.
 </Aside>
+
+## Added Stamps 
+
+The Logger Middleware is going to add:
+
+    -     
+        ```typescript
+        type TimingsStamp = Stamp<{ total: number }, 'missive:timings'>
+        ```
+        > When the message is handled or errored with the total time elapsed in nanoseconds.
 
 ## Going further
 
-     <div class='flex flex-row'>
-            <span className='pr-2'>Look at the code of the </span>
-            <a href="https://github.com/Missive-js/missive.js/tree/main/libs/missive.js/src/middlewares/logger-middleware.ts" class="contents" target="_blank"><Icon name="github" class="mr-2"/>Logger Middleware</a>
-        </div>
+<div class='flex flex-row'>
+    <span className='pr-2'>Look at the code of the </span>
+    <a href="https://github.com/Missive-js/missive.js/tree/main/libs/missive.js/src/middlewares/logger-middleware.ts" class="contents" target="_blank"><Icon name="github" class="mr-2"/>Logger Middleware</a>
+</div>

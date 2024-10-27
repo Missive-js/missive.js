@@ -1,0 +1,91 @@
+---
+title: Cacher Middleware
+description: Built-in middleware to cache results of queries.
+---
+
+import { Icon, Aside } from '@astrojs/starlight/components';
+
+The Cacher Middleware is built-in middleware that gives you capability to cache the results of queries. To speed up your application.
+It's only available for _QueryBus_
+
+## How to use it
+
+As for any Middleware, you can use it by adding it to the `bus` instance.
+
+```typescript
+const cacherMiddleware = createCacherMiddleware<QueryHandlerRegistry>({ adapter, cache: 'all', defaultTtl: 3600 });
+const queryBus = createQueryBus<QueryHandlerRegistry>();
+queryBus.use(cacherMiddleware);
+```
+
+Of course, the key is in the `adapter` that you will provide to the `createCacherMiddleware` function. 
+This adapter must respect the `CacherAdapter` interface.
+
+Here is an example: 
+
+```typescript
+const createMemoryCacheAdapter = (): CacherAdapter => {
+    const memory = new Map<string, { value: unknown; expiresAt: number }>();
+    return {
+        get: async (key) => {
+            const entry = memory.get(key);
+            if (entry && Date.now() < entry.expiresAt) {
+                return entry.value;
+            }
+            memory.delete(key);
+            return null;
+        },
+        set: async (key: string, value, ttl) => {
+            const expiresAt = Date.now() + ttl * 1000;
+            memory.set(key, { value, expiresAt });
+        },
+    };
+};
+const adapter = createMemoryCache();
+```
+<Aside title="We got you cover!" type="tip">
+Do not copy/paste this boilerplate, if `adapter` is not passed to the `createCacherMiddleware` function,
+it will default to `memoryCache` and provide you with the basic cacher above.
+</Aside>
+
+### Explanation
+
+With the Cacher Middleware, if the intent result is already in the cache, it will be returned directly without
+calling the handler.
+
+Aside of the `adapter`, you can provide the following parameters to the `createCacherMiddleware` function:
+- **cache**: `all` or `only-cacheable` (default: `all`) - `all` will cache all results
+- **defaultTtl**: number (default: `3600`) - the default time to live in seconds
+
+### Cache on demand
+
+If you don't want to cache all the queries for that a QueryBus, you can `createCacherMiddleware` with `cache` equals to `only-cacheable`.
+THen you need to tell the Middleware which queries are cacheable by adding the `cacheable` stamp to the result. 
+
+```typescript
+const handler = async (envelope: Envelope<Query>, deps: Deps) => {
+    // your handler code here
+    envelope.addStamp<CacheableStamp>('missive:cacheable', { ttl: 1800 });
+    return {
+        // your result here
+    }
+};
+```
+
+## Added Stamps 
+
+The Cacher Middleware is going to add:
+
+    -     
+        ```typescript
+        type FromCacheStamp = Stamp<undefined, 'missive:cache:hit'>;
+        ```
+        > When the result is coming from cache
+
+
+## Going further
+
+<div class='flex flex-row'>
+    <span className='pr-2'>Look at the code of the </span>
+    <a href="https://github.com/Missive-js/missive.js/tree/main/libs/missive.js/src/middlewares/cacher-middleware.ts" class="contents" target="_blank"><Icon name="github" class="mr-2"/>Cacher Middleware</a>
+</div>

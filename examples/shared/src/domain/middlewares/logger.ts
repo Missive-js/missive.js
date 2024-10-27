@@ -1,6 +1,6 @@
-import { GenericMiddleware } from 'missive.js';
+import { Middleware } from 'missive.js';
 
-export const createLoggerMiddleware = (): GenericMiddleware => async (envelope, next) => {
+export const createLoggerMiddleware = (): Middleware<any, any> => async (envelope, next) => {
     console.log('Logger Middleware: Message Received', envelope.message);
     await next();
     console.log('Logger Middleware: Message Handled', envelope.message);

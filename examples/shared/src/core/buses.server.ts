@@ -1,10 +1,16 @@
-import { createCommandBus, createEventBus, createQueryBus, LoggerAdapter } from 'missive.js';
+import {
+    CacherAdapter,
+    createCacherMiddleware,
+    createCommandBus,
+    createEventBus,
+    createQueryBus,
+    LoggerAdapter,
+} from 'missive.js';
 import {
     CommandBus,
     CommandHandlerRegistry,
     EventBus,
     EventHandlerRegistry,
-    QueryBus,
     QueryHandlerRegistry,
 } from '../domain/contracts/bus.js';
 import { createEventsMiddleware } from '../domain/middlewares/events.js';
@@ -16,44 +22,22 @@ import { createUserCreatedHandler, userCreatedEventSchema } from '../domain/use-
 import { createUserCreatedHandler2 } from '../domain/use-cases/user-created2.js';
 import { createUserRemovedHandler, userRemovedEventSchema } from '../domain/use-cases/user-removed.js';
 import { createLoggerMiddleware as MissiveCreateLoggerMiddleware } from 'missive.js';
+import { QueryBus } from '../domain/contracts/bus.js';
 
-export const consoleLogger: LoggerAdapter = {
-    processing: (identity, message, results, stamps) =>
-        console.log(
-            `Processing Envelope<${identity?.body?.id}>`,
-            JSON.stringify({
-                message,
-                results,
-                stamps,
-            }),
-        ),
-    processed: (identity, message, results, stamps) =>
-        console.log(
-            `Processed Envelope<${identity?.body?.id}>`,
-            JSON.stringify({
-                message,
-                results,
-                stamps,
-            }),
-        ),
-    error: (identity, message, results, stamps) =>
-        console.error(
-            `Error with Envelope<${identity?.body?.id}>`,
-            JSON.stringify({
-                message,
-                results,
-                stamps,
-            }),
-        ),
-};
-
-const loggerMiddleware = createLoggerMiddleware();
-const missiveLoggerMiddleware = MissiveCreateLoggerMiddleware(consoleLogger, {
+// Built-in Logger Middleware Adapter
+const missiveLoggerMiddleware = MissiveCreateLoggerMiddleware({
     collect: false,
     async: false,
 });
+// Built-in Cacher Middleware Adapter
+const cacherMiddleware = createCacherMiddleware<QueryHandlerRegistry>({ cache: 'all', defaultTtl: 3600 });
+
+// Project Logger Middleware Adapter
+const loggerMiddleware = createLoggerMiddleware();
+
 const queryBus: QueryBus = createQueryBus<QueryHandlerRegistry>();
 queryBus.use(missiveLoggerMiddleware);
+queryBus.use(cacherMiddleware);
 queryBus.use(loggerMiddleware);
 queryBus.register('getUser', getUserQuerySchema, createGetUserHandler({}));
 
@@ -71,5 +55,4 @@ const commandBus: CommandBus = createCommandBus<CommandHandlerRegistry>({
         { messageName: 'removeUser', schema: removeUserCommandSchema, handler: createRemoveUserHandler({}) },
     ],
 });
-
 export { queryBus, commandBus, eventBus };

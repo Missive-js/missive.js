@@ -1,4 +1,5 @@
 import { Envelope, QueryHandlerDefinition } from 'missive.js';
+import { CacheableStamp } from 'missive.js';
 import { z } from 'zod';
 
 type Deps = {};
@@ -16,6 +17,7 @@ export type GetUserHandlerDefinition = QueryHandlerDefinition<'getUser', Query, 
 const handler = async (envelope: Envelope<Query>, deps: Deps) => {
     const { login, email, userId } = envelope.message;
     console.log(`Get User Handler: Getting User with login ${login} or email ${email} or userId ${userId}`);
+    envelope.addStamp<CacheableStamp>('missive:cacheable', { ttl: 1800 });
     return {
         success: true,
         user: {

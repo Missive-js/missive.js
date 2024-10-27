@@ -109,20 +109,29 @@ That's the power of Missive.js! Here are the built-in middlewares:
         once handled (or errored) in the backend of your choice.</p>
         <LinkButton href={'/missive.js/built-in-middlewares/logger'} variant="secondary" class="float-right" title={"Read the doc about the Logger Middleware"}>Read the doc</LinkButton>
     </Card>
+    <Card title="Caching Middleware" icon="approve-check-circle">
+        <p>Caches results for faster access in future queries, reducing load and making it blazing fast.</p>
+        <LinkButton href={'/missive.js/built-in-middlewares/cacher'} variant="secondary" class="float-right" title={"Read the doc about the Cacher Middleware"}>Read the doc</LinkButton>
+    </Card>
 
     <Card title="Retry Middleware" icon="random">
         <p>Automatically retries processing a message a specified number of times before considering it as failed, with a backoff strategy.</p>
         <LinkButton href={'/missive.js/contributing'} variant="secondary" class="float-right" ><Badge text='coming soon' variant='caution'/></LinkButton>
     </Card>
 
-    <Card title="Caching Middleware" icon="approve-check-circle">
-        <p>Caches responses or message results for faster access in future requests, reducing load on the system.</p>
-        <LinkButton href={'/missive.js/contributing'} variant="secondary" class="float-right" ><Badge text='coming soon' variant='caution'/></LinkButton>
-    </Card>
-
     <Card title="Async Middleware" icon="seti:nunjucks">
         <p>You can already do async if you don't _await_ in your handler, but this is next level. Push the intent to a queue and handle it asynchronously.</p>
         <p>Missive.js will provide the consumer which is going to be smart enough to handle the async processing.</p>
+        <LinkButton href={'/missive.js/contributing'} variant="secondary" class="float-right" ><Badge text='coming soon' variant='caution'/></LinkButton>
+    </Card>
+
+    <Card title="Lock Middleware" icon="seti:lock">
+        <p>It provide a way to lock the processing of a message based on something in the intent itself. For instance your could lock the `command` that touches a Cart.</p>
+        <LinkButton href={'/missive.js/contributing'} variant="secondary" class="float-right" ><Badge text='coming soon' variant='caution'/></LinkButton>
+    </Card>
+
+    <Card title="Webhook Middleware" icon="rocket">
+        <p> The Webhook Middleware is going to push the result(s) of handlers(s) to confirured webhook(s). It's another way to decouple your system and to make it more resilient.</p>
         <LinkButton href={'/missive.js/contributing'} variant="secondary" class="float-right" ><Badge text='coming soon' variant='caution'/></LinkButton>
     </Card>
 </CardGrid>
