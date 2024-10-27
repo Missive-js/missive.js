@@ -21,8 +21,8 @@ Notice that [Zod](https://zod.dev) is a peer dependency, you need to install it 
 ## Ubiquitous language
 
 - **Intent**: This is what you want to send to the bus. It can be a `command`, a `query` or an `event`.
-- **Envelope**: Concept inspired by [Symfony Messenger](https://symfony.com/doc/current/components/messenger.html). it gives full flexibility inside the service bus, by wrapping the messages into it, allowing to add useful information inside through envelope stamps.
-- **Envelope stamps**: Piece of information you need to attach to your intent, can be any sort of metadata your middleware / handler may use.
+- **Envelope**: It gives full flexibility inside the service bus, by wrapping the messages into it, allowing to add useful information inside through envelope stamps.
+- **Stamps**: Piece of information you need to attach to an Envelope, can be any sort of metadata your middleware / handler may use.
 
 ## Create your first handler
 
