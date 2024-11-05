@@ -1,4 +1,4 @@
-# [Missive JS](https://github.com/Missive-js/missive.js)
+# [Missive JS](https://missive-js.github.io/missive.js)
 
 ## [![CI](https://github.com/missive-js/missive.js/actions/workflows/main-ci.yaml/badge.svg?branch=main)](https://github.com/Missive-js/missive.js/actions/workflows/main-ci.yaml) [![Deploy Docs](https://github.com/missive-js/missive.js/actions/workflows/deploy-to-pages.yaml/badge.svg?branch=main)](https://github.com/Missive-js/missive.js/actions/workflows/deploy-to-pages.yaml) [![Install size](https://packagephobia.com/badge?p=missive.js)](https://packagephobia.com/result?p=missive.js) ![Tree shaking](https://badgen.net/bundlephobia/tree-shaking/missive.js) ![Minizipped size](https://badgen.net/bundlephobia/minzip/missive.js)
 
