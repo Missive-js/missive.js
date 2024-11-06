@@ -1,5 +1,4 @@
 import { expect, it, beforeEach, describe } from 'vitest';
-import { z, Schema } from 'zod';
 import { Envelope } from '../src/core/envelope';
 import { createQueryBus, QueryBus } from '../src/core/bus';
 import { Middleware } from '../src/core/middleware';
@@ -17,7 +16,6 @@ describe('Bus', () => {
     });
 
     it('should register and dispatch a query event', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (
             envelope: Envelope<MyEvents['event1']['query']>,
         ): Promise<MyEvents['event1']['result']> => {
@@ -25,7 +23,7 @@ describe('Bus', () => {
             return { bar: 42 };
         };
 
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
         const intent = bus.createQuery('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
 
@@ -33,14 +31,13 @@ describe('Bus', () => {
     });
 
     it('should register and dispatch a command event', async () => {
-        const schema: Schema<MyEvents['event2']['query']> = z.object({ baz: z.boolean() });
         const handler = async (
             envelope: Envelope<MyEvents['event2']['query']>,
         ): Promise<MyEvents['event2']['result']> => {
             expect(envelope.message.baz).toBe(true);
             return { qux: 'success' };
         };
-        bus.register('event2', schema, handler);
+        bus.register('event2', handler);
 
         const intent = bus.createQuery('event2', { baz: true });
         const result = await bus.dispatch(intent);
@@ -49,7 +46,6 @@ describe('Bus', () => {
     });
 
     it('should use middleware', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (
             envelope: Envelope<MyEvents['event1']['query']>,
         ): Promise<MyEvents['event1']['result']> => {
@@ -63,7 +59,7 @@ describe('Bus', () => {
         };
 
         bus.use(middleware);
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
 
         const intent = bus.createQuery('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
@@ -78,22 +74,7 @@ describe('Bus', () => {
         await expect(bus.dispatch(intent)).rejects.toThrow('No handler found for type: unregistered');
     });
 
-    it('should throw an error for invalid intent', () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
-        const handler = async (
-            envelope: Envelope<MyEvents['event1']['query']>,
-        ): Promise<MyEvents['event1']['result']> => {
-            expect(envelope.message.foo).toBe(123);
-            return { bar: 42 };
-        };
-
-        bus.register('event1', schema, handler);
-        // @ts-expect-error -- intentionally, we test for the error
-        expect(() => bus.createIntent('event1', { foo: 123 })).toThrow();
-    });
-
     it('should execute middlewares in the correct order', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (): Promise<MyEvents['event1']['result']> => {
             return { bar: 42 };
         };
@@ -125,7 +106,7 @@ describe('Bus', () => {
         bus.use(middleware2);
         bus.use(middleware3);
         bus.use(middleware4);
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
 
         const intent = bus.createQuery('event1', { foo: 'test' });
         await bus.dispatch(intent);
@@ -135,7 +116,6 @@ describe('Bus', () => {
     });
 
     it('should stop middlewares', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (): Promise<MyEvents['event1']['result']> => {
             return { bar: 42 };
         };
@@ -177,7 +157,7 @@ describe('Bus', () => {
         bus.use(middleware3);
         bus.use(middleware4);
         bus.use(middleware5);
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
 
         const intent = bus.createQuery('event1', { foo: 'test' });
         await bus.dispatch(intent);
@@ -187,7 +167,6 @@ describe('Bus', () => {
     });
 
     it('should allow middleware to modify the envelope', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (
             envelope: Envelope<MyEvents['event1']['query']>,
         ): Promise<MyEvents['event1']['result']> => {
@@ -204,7 +183,7 @@ describe('Bus', () => {
         };
 
         bus.use(middleware);
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
 
         const intent = bus.createQuery('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);
@@ -213,7 +192,6 @@ describe('Bus', () => {
     });
 
     it('should execute multiple middleware functions', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (): Promise<MyEvents['event1']['result']> => {
             return { bar: 42 };
         };
@@ -232,7 +210,7 @@ describe('Bus', () => {
 
         bus.use(middleware1);
         bus.use(middleware2);
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
 
         const intent = bus.createQuery('event1', { foo: 'test' });
         await bus.dispatch(intent);
@@ -242,7 +220,6 @@ describe('Bus', () => {
     });
 
     it('should execute middleware and handlers together correctly', async () => {
-        const schema: Schema<MyEvents['event1']['query']> = z.object({ foo: z.string() });
         const handler = async (
             envelope: Envelope<MyEvents['event1']['query']>,
         ): Promise<MyEvents['event1']['result']> => {
@@ -258,7 +235,7 @@ describe('Bus', () => {
         };
 
         bus.use(middleware);
-        bus.register('event1', schema, handler);
+        bus.register('event1', handler);
 
         const intent = bus.createQuery('event1', { foo: 'test' });
         const result = await bus.dispatch(intent);

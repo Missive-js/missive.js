@@ -86,25 +86,13 @@ export const buildContainer = () => {
             ListAllCharacters: { shortCircuit: true },
         },
     });
-    container.cradle.queryBus.register(
-        'ListAllCharacters',
-        ListAllCharactersQuerySchema,
-        container.cradle.listAllCharactersQueryHandler,
-    );
-    container.cradle.queryBus.register(
-        'ListAllQuests',
-        ListAllQuestsQuerySchema,
-        container.cradle.listAllQuestsQueryHandler,
-    );
+    container.cradle.queryBus.register('ListAllCharacters', container.cradle.listAllCharactersQueryHandler);
+    container.cradle.queryBus.register('ListAllQuests', container.cradle.listAllQuestsQueryHandler);
 
     // Command Bus
     container.cradle.commandBus.useLoggerMiddleware({ logger: observabilityLogger });
     container.cradle.commandBus.useLoggerMiddleware({ logger: simpleLogger });
-    container.cradle.commandBus.register(
-        'AddCharacter',
-        AddCharacterCommandSchema,
-        container.cradle.addCharacterCommandHandler,
-    );
+    container.cradle.commandBus.register('AddCharacter', container.cradle.addCharacterCommandHandler);
     container.cradle.commandBus.register('AddQuest', AddQuestCommandSchema, container.cradle.addQuestCommandHandler);
 
     // Event Bus

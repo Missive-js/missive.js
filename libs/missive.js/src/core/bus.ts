@@ -1,4 +1,3 @@
-import type { Schema as ZodSchema } from 'zod';
 import { createEnvelope, HandledStamp, IdentityStamp, ReprocessedStamp, type Envelope } from './envelope.js';
 import type { Prettify, ReplaceKeys } from '../utils/types.js';
 import type { Middleware } from './middleware.js';
@@ -11,6 +10,7 @@ import { createLockMiddleware } from '../middlewares/lock-middleware.js';
 import { createFeatureFlagMiddleware } from '../middlewares/feature-flag-middleware.js';
 import { createMockerMiddleware } from '../middlewares/mocker-middleware.js';
 import { createAsyncMiddleware } from '../middlewares/async-middleware.js';
+import { createValidatorMiddleware } from '../middlewares/validator-middleware.js';
 
 export type BusKinds = 'query' | 'command' | 'event';
 export type MessageRegistryType<BusKind extends BusKinds> = Record<string, HandlerDefinition<BusKind>>;
@@ -61,7 +61,6 @@ type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegi
     use: (middleware: Middleware<BusKind, HandlerDefinitions>) => void;
     register: <MessageName extends keyof HandlerDefinitions & string>(
         type: MessageName,
-        schema: ZodSchema<HandlerDefinitions[MessageName][BusKind]>,
         handler: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>,
     ) => void;
     dispatch: {
@@ -90,6 +89,9 @@ type MissiveCommandBus<HandlerDefinitions extends CommandMessageRegistryType> = 
     MissiveBus<'command', HandlerDefinitions>,
     { createCommand: 'createIntent' }
 > & {
+    useValidatorMiddleware: (
+        ...props: Parameters<typeof createValidatorMiddleware<'command', HandlerDefinitions>>
+    ) => void;
     useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'command', HandlerDefinitions>>) => void;
     useRetryerMiddleware: (...props: Parameters<typeof createRetryerMiddleware<'command', HandlerDefinitions>>) => void;
     useWebhookMiddleware: (...props: Parameters<typeof createWebhookMiddleware<'command', HandlerDefinitions>>) => void;
@@ -109,6 +111,9 @@ type MissiveQueryBus<HandlerDefinitions extends QueryMessageRegistryType> = Repl
     MissiveBus<'query', HandlerDefinitions>,
     { createQuery: 'createIntent' }
 > & {
+    useValidatorMiddleware: (
+        ...props: Parameters<typeof createValidatorMiddleware<'query', HandlerDefinitions>>
+    ) => void;
     useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'query', HandlerDefinitions>>) => void;
     useRetryerMiddleware: (...props: Parameters<typeof createRetryerMiddleware<'query', HandlerDefinitions>>) => void;
     useWebhookMiddleware: (...props: Parameters<typeof createWebhookMiddleware<'query', HandlerDefinitions>>) => void;
@@ -127,6 +132,9 @@ type MissiveEventBus<HandlerDefinitions extends EventMessageRegistryType> = Repl
     MissiveBus<'event', HandlerDefinitions>,
     { createEvent: 'createIntent' }
 > & {
+    useValidatorMiddleware: (
+        ...props: Parameters<typeof createValidatorMiddleware<'event', HandlerDefinitions>>
+    ) => void;
     useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'event', HandlerDefinitions>>) => void;
     useRetryerMiddleware: (...props: Parameters<typeof createRetryerMiddleware<'event', HandlerDefinitions>>) => void;
     useWebhookMiddleware: (...props: Parameters<typeof createWebhookMiddleware<'event', HandlerDefinitions>>) => void;
@@ -149,7 +157,6 @@ type HandlerConfig<
     ? Definitions extends Record<string, unknown>
         ? {
               messageName: MessageName;
-              schema: ZodSchema<Definitions[BusKind]>;
               handler: MessageHandler<Definitions[BusKind], Definitions['result']>;
           }
         : never
@@ -163,7 +170,6 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
 
     const registry: {
         [MessageName in keyof HandlerDefinitions & string]?: {
-            schema: ZodSchema<HandlerDefinitions[MessageName][BusKind]>;
             handlers: MessageHandler<
                 HandlerDefinitions[MessageName][BusKind],
                 HandlerDefinitions[MessageName]['result']
@@ -177,18 +183,17 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
 
     const registerHandler = <MessageName extends keyof HandlerDefinitions & string>(
         messageName: MessageName,
-        schema: ZodSchema<HandlerDefinitions[MessageName][BusKind]>,
         handler: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>,
     ) => {
         if (!registry[messageName]) {
-            registry[messageName] = { schema, handlers: [] };
+            registry[messageName] = { handlers: [] };
         }
         registry[messageName].handlers.push(handler);
     };
 
     if (args?.handlers) {
-        for (const { messageName, schema, handler } of args.handlers) {
-            registerHandler(messageName as keyof HandlerDefinitions & string, schema, handler);
+        for (const { messageName, handler } of args.handlers) {
+            registerHandler(messageName as keyof HandlerDefinitions & string, handler);
         }
     }
 
@@ -289,11 +294,10 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
         if (!entry) {
             throw new Error(`No handler found for type: ${type}`);
         }
-        const { schema } = entry;
-        const parsed = schema.parse(intent);
+
         return {
             __type: type,
-            ...parsed,
+            ...intent,
         };
     };
     return {
@@ -312,6 +316,11 @@ export function createCommandBus<HandlerDefinitions extends CommandMessageRegist
 
     return {
         use: (middleware: Middleware<'command', HandlerDefinitions>) => commandBus.use(middleware),
+        useValidatorMiddleware: (
+            ...props: Parameters<typeof createValidatorMiddleware<'command', HandlerDefinitions>>
+        ) => {
+            commandBus.use(createValidatorMiddleware(...props));
+        },
         useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'command', HandlerDefinitions>>) => {
             commandBus.use(createLoggerMiddleware(...props));
         },
@@ -349,6 +358,11 @@ export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryTy
 
     return {
         use: (middleware: Middleware<'query', HandlerDefinitions>) => queryBus.use(middleware),
+        useValidatorMiddleware: (
+            ...props: Parameters<typeof createValidatorMiddleware<'query', HandlerDefinitions>>
+        ) => {
+            queryBus.use(createValidatorMiddleware(...props));
+        },
         useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'query', HandlerDefinitions>>) => {
             queryBus.use(createLoggerMiddleware(...props));
         },
@@ -385,6 +399,11 @@ export function createEventBus<HandlerDefinitions extends EventMessageRegistryTy
     const eventBus = createBus<'event', HandlerDefinitions>(args);
     return {
         use: (middleware: Middleware<'event', HandlerDefinitions>) => eventBus.use(middleware),
+        useValidatorMiddleware: (
+            ...props: Parameters<typeof createValidatorMiddleware<'event', HandlerDefinitions>>
+        ) => {
+            eventBus.use(createValidatorMiddleware(...props));
+        },
         useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'event', HandlerDefinitions>>) => {
             eventBus.use(createLoggerMiddleware(...props));
         },
