@@ -44,7 +44,7 @@ Here's how it works:
 3. Handler Execution
 
     After the intent passes through all the middleware, it reaches the handler defined for the specific intent type. The handler processes the intent based on
-    its business logic and and _Stamps_ `handled` is added to the envelope.
+    its business logic and _Stamps_ `handled` is added to the envelope.
 
 </Steps>
 
@@ -52,7 +52,7 @@ Here's how it works:
 
 Middleware functions in Missive.js are simple, functions that take in two parameters:
 
-- an _Intent_ wrapped in the _Envelope_: te current intent being processed.
+- an _Intent_ wrapped in the _Envelope_: the current intent being processed.
 - _next_: A function that calls the next middleware or handler in the pipeline.
 
 Here's an example middleware function:
