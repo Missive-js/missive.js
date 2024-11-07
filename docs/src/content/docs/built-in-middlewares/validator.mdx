@@ -1,20 +1,24 @@
 ---
 title: Validator Middleware
-description: Built in middleware to validate the intent before it's handled.
+description: Built in middleware to validate the intent before it's handled and the result after it's handled.
 ---
 
 import { Icon, Aside } from '@astrojs/starlight/components';
 
 
-The Validator Middleware is built-in middleware that gives you capability to validate the intent before it's handled.
+The Validator Middleware is built-in middleware that gives you capability to validate the intent before it's handled and the result after it's handled.
 
 You can use any library (such as [Zod](https://zod.dev), [Joi](https://github.com/hapijs/joi), [ajv](https://ajv.js.org/)...) you want to validate the intent, as long as it returns a boolean.
+
+> Remember built-in middlewares are _intent_ aware, therefore you can customize the behavior per intent using the key `intents`.
 
 ## How to use it
 
 As for any Middleware, you can use it by adding it to the `bus` instance.
 
 Then for each intent you want to validate, you provide a function that will return `true` if the intent is valid, `false` otherwise.
+The same applies for the result, you provide a function that will return `true` if the result is valid, `false` otherwise.
+
 If you provide a function that returns `false`, the middleware will throw an `Error`.
 
 If you don't provide a function for an intent, the middleware will assume the intent is valid and won't validate it.
@@ -22,7 +26,12 @@ If you don't provide a function for an intent, the middleware will assume the in
 ```typescript
 const queryBus = createQueryBus<QueryHandlerRegistry>();
 queryBus.useValidatorMiddleware({
-    myIntent: myFunctionThatValidateTheIntent
+    intents: {
+        myIntent: {
+            input: myFunctionThatValidateTheIntent,
+            output: myFunctionThatValidateTheResult,
+        },
+    },
 });
 ```
 
@@ -34,12 +43,21 @@ const createUserSchema = z.object({
     email: z.string().email(),
 });
 
+const createUserOutputSchema = z.object({
+    userId: z.string(),
+});
+
 queryBus.useValidatorMiddleware({ 
-    createUser: (message) => createUserSchema.safeParse(message).success 
+    intents: {
+        createUser: {
+            input: (message) => createUserSchema.safeParse(message).success,
+            output: (result) => createUserOutputSchema.safeParse(result).success,
+        },
+    },
 });
 ```
 
-## Added Stamps 
+## Added Stamps
 
 The Validator Middleware is not adding any stamps.
 
