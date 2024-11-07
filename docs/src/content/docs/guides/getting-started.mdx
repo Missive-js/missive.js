@@ -14,7 +14,6 @@ import { Badge, Aside } from '@astrojs/starlight/components';
 ## Installation
 
 Like any other package, you can install Missive.js using _npm_, _yarn_ or _pnpm_.
-Notice that [Zod](https://zod.dev) is a peer dependency, you need to install it as well if you don't have it already in your project.
 
 <Install />
 
@@ -35,11 +34,7 @@ Only 3 things are going to change in your code. `Type`, `handler` and `Schema`. 
 ```typescript
 type Deps = {/* your dependencies here */};
 
-export const Schema = z.object({
-    /* your schema here */
-});
-
-type Command = z.infer<typeof Schema>;
+type Command = {/* your command type here */};
 type Result = Awaited<ReturnType<typeof handler>>;
 export type Definition = CommandHandlerDefinition<'createUser', Command, Result>;
 

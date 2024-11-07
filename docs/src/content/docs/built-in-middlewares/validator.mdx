@@ -1,0 +1,51 @@
+---
+title: Validator Middleware
+description: Built in middleware to validate the intent before it's handled.
+---
+
+import { Icon, Aside } from '@astrojs/starlight/components';
+
+
+The Validator Middleware is built-in middleware that gives you capability to validate the intent before it's handled.
+
+You can use any library (such as [Zod](https://zod.dev), [Joi](https://github.com/hapijs/joi), [ajv](https://ajv.js.org/)...) you want to validate the intent, as long as it returns a boolean.
+
+## How to use it
+
+As for any Middleware, you can use it by adding it to the `bus` instance.
+
+Then for each intent you want to validate, you provide a function that will return `true` if the intent is valid, `false` otherwise.
+If you provide a function that returns `false`, the middleware will throw an `Error`.
+
+If you don't provide a function for an intent, the middleware will assume the intent is valid and won't validate it.
+
+```typescript
+const queryBus = createQueryBus<QueryHandlerRegistry>();
+queryBus.useValidatorMiddleware({
+    myIntent: myFunctionThatValidateTheIntent
+});
+```
+
+Here is an example using the [Zod](https://zod.dev) library:
+
+```typescript
+const createUserSchema = z.object({
+    name: z.string(),
+    email: z.string().email(),
+});
+
+queryBus.useValidatorMiddleware({ 
+    createUser: (message) => createUserSchema.safeParse(message).success 
+});
+```
+
+## Added Stamps 
+
+The Validator Middleware is not adding any stamps.
+
+## Going further
+
+<div class='flex flex-row'>
+    <span className='pr-2'>Look at the code of the </span>
+    <a href="https://github.com/Missive-js/missive.js/tree/main/libs/missive.js/src/middlewares/validator-middleware.ts" class="contents" target="_blank"><Icon name="github" class="mr-2"/>Validator Middleware</a>
+</div>

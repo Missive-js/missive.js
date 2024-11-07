@@ -3,13 +3,8 @@ title: Create Handler
 ---
 
 ```typescript
-// the schema to validate the intent
-export const Schema = z.object({
-    email: z.string().email(),
-});
-
 // the Types to use in the bus configuration
-type Command = z.infer<typeof Schema>;
+type Command = { email: string };
 type Result = Awaited<ReturnType<typeof handler>>;
 export type Definition = CommandHandlerDefinition<'createUser', Command, Result>;
 

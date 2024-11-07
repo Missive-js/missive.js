@@ -93,7 +93,7 @@ export const buildContainer = () => {
     container.cradle.commandBus.useLoggerMiddleware({ logger: observabilityLogger });
     container.cradle.commandBus.useLoggerMiddleware({ logger: simpleLogger });
     container.cradle.commandBus.register('AddCharacter', container.cradle.addCharacterCommandHandler);
-    container.cradle.commandBus.register('AddQuest', AddQuestCommandSchema, container.cradle.addQuestCommandHandler);
+    container.cradle.commandBus.register('AddQuest', container.cradle.addQuestCommandHandler);
 
     // Event Bus
     container.cradle.eventBus.useLoggerMiddleware({ logger: simpleLogger });
