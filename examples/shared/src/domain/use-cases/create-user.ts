@@ -13,6 +13,11 @@ type Command = z.infer<typeof createUserCommandSchema>;
 type Result = Awaited<ReturnType<typeof handler>>;
 export type CreateUserHandlerDefinition = CommandHandlerDefinition<'createUser', Command, Result>;
 
+export const createUserCommandOutputSchema = z.object({
+    userId: z.string(),
+    success: z.boolean(),
+});
+
 const handler = async (envelope: Envelope<Command>, deps: Deps) => {
     const { firstname, lastname, email } = envelope.message;
 

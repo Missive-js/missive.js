@@ -8,7 +8,11 @@ import {
 } from '../domain/contracts/bus.js';
 import { createEventsMiddleware } from '../domain/middlewares/events.js';
 import { createLoggerMiddleware } from '../domain/middlewares/logger.js';
-import { createCreateUserHandler, createUserCommandSchema } from '../domain/use-cases/create-user.js';
+import {
+    createCreateUserHandler,
+    createUserCommandOutputSchema,
+    createUserCommandSchema,
+} from '../domain/use-cases/create-user.js';
 import { createGetUserHandler, getUserQuerySchema } from '../domain/use-cases/get-user.js';
 import { createRemoveUserHandler, removeUserCommandSchema } from '../domain/use-cases/remove-user.js';
 import { createUserCreatedHandler, userCreatedEventSchema } from '../domain/use-cases/user-created.js';
@@ -22,8 +26,14 @@ const loggerMiddleware = createLoggerMiddleware();
 
 const queryBus: QueryBus = createQueryBus<QueryHandlerRegistry>();
 queryBus.useValidatorMiddleware({
-    getUser: (message) => getUserQuerySchema.safeParse(message).success,
-    getOrders: (message) => getOrdersQuerySchema.safeParse(message).success,
+    intents: {
+        getUser: {
+            input: (message) => getUserQuerySchema.safeParse(message).success,
+        },
+        getOrders: {
+            input: (message) => getOrdersQuerySchema.safeParse(message).success,
+        },
+    },
 });
 queryBus.useLoggerMiddleware();
 queryBus.useCacherMiddleware();
@@ -69,8 +79,14 @@ queryBus.register('getOrders', createGetOrdersHandler({}));
 
 const eventBus: EventBus = createEventBus<EventHandlerRegistry>();
 eventBus.useValidatorMiddleware({
-    userCreated: (message) => createUserCommandSchema.safeParse(message).success,
-    userRemoved: (message) => removeUserCommandSchema.safeParse(message).success,
+    intents: {
+        userCreated: {
+            input: (message) => createUserCommandSchema.safeParse(message).success,
+        },
+        userRemoved: {
+            input: (message) => removeUserCommandSchema.safeParse(message).success,
+        },
+    },
 });
 eventBus.useLoggerMiddleware({
     intents: {
@@ -92,8 +108,15 @@ const commandBus: CommandBus = createCommandBus<CommandHandlerRegistry>({
     ],
 });
 commandBus.useValidatorMiddleware({
-    createUser: (message) => createUserCommandSchema.safeParse(message).success,
-    removeUser: (message) => removeUserCommandSchema.safeParse(message).success,
+    intents: {
+        createUser: {
+            input: (message) => createUserCommandSchema.safeParse(message).success,
+            output: (result) => createUserCommandOutputSchema.safeParse(result).success,
+        },
+        removeUser: {
+            input: (message) => removeUserCommandSchema.safeParse(message).success,
+        },
+    },
 });
 // commandBus.useMockerMiddleware({
 //     intents: {
