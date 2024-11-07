@@ -45,3 +45,6 @@ export { createFeatureFlagMiddleware } from './middlewares/feature-flag-middlewa
 
 // Validator
 export { createValidatorMiddleware } from './middlewares/validator-middleware.js';
+
+// Errrors
+export type { MissiveMiddlewareError } from './core/errors.js';

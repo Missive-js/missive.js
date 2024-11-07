@@ -1,4 +1,4 @@
-import { RetryConfiguration } from './types';
+import { RetryConfiguration } from './types.js';
 
 export type Sleeper = {
     wait: () => Promise<void>;

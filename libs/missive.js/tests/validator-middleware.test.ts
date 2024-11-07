@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Envelope } from '../src/core/envelope';
 import { TypedMessage } from '../src/core/bus';
 import { createValidatorMiddleware } from '../src/middlewares/validator-middleware';
-import { MissiveMiddlewareError } from '../src/middlewares/errors';
+import { MissiveMiddlewareError } from '../src/core/errors';
 
 function createEnvelope(id: number) {
     return {

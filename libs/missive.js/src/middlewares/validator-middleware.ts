@@ -1,7 +1,7 @@
-import { BusKinds, MessageRegistry, MessageRegistryType } from '../core/bus';
-import { Envelope } from '../core/envelope';
-import { Middleware } from '../core/middleware';
-import { MissiveMiddlewareError } from './errors';
+import { BusKinds, MessageRegistry, MessageRegistryType } from '../core/bus.js';
+import { Envelope } from '../core/envelope.js';
+import { Middleware } from '../core/middleware.js';
+import { MissiveMiddlewareError } from '../core/errors.js';
 
 type Validators<BusKind extends BusKinds, T extends MessageRegistryType<BusKind>> = Partial<{
     [K in keyof T]: (message: NarrowedEnvelope<BusKind, T, K>['message']) => boolean;
