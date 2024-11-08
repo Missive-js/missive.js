@@ -44,7 +44,7 @@ commandBus.useWebhookMiddleware({
 
 ### Explanation
 
-The Webooh middleware is simply taking the envelope and send it to the confifured Webhooks. 
+The Webhook middleware is simply taking the envelope and send it to the confifured Webhooks. 
 It includes a retry mechanism in case of failure, between each attempt, the middleware is going to wait for a certain amount of time. 
 The `waitingAlgorithm` can be `exponential`, `fibonacci`, or `none`.
 

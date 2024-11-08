@@ -50,15 +50,15 @@ We love clean architecture and CQRS, we didn't find any simple Service Bus that 
         [Lock](/missive.js/built-in-middlewares/lock), 
         [FeatureFlag](/missive.js/built-in-middlewares/feature-flag), 
         [Mock](/missive.js/built-in-middlewares/mocker), 
-        [Async](/missive.js/built-in-middlewares/async), 
+        [Async](/missive.js/built-in-middlewares/async),
+        [Validator](/missive.js/built-in-middlewares/validator), 
         or [Webhook](/missive.js/built-in-middlewares/webhook).
     </Card>
     <Card title="Envelopes and Stamps" icon="email">
         Handle cross-cutting concerns with Envelopes and Stamps.
     </Card>
     <Card title="Type-safe" icon="seti:typescript">
-        Define your `query`, `command` or `event` using a [Zod schema](https://zod.dev) for validation and type
-        inference. The `bus` instance is fully typed. _(You'll have auto-completion for free!)_
+        Define your `query`, `command` or `event`. The `bus` instance is fully typed. _(You'll have auto-completion for free!)_
     </Card>
 </CardGrid>
 
@@ -70,7 +70,7 @@ We love clean architecture and CQRS, we didn't find any simple Service Bus that 
 
     <Install />
 
-2. Define your handler for `query`, `command` or `event` using a [Zod schema](https://zod.dev) for validation and type inference.
+2. Define your handler for `query`, `command` or `event`
 
     <CreateHandler />
 
@@ -106,19 +106,23 @@ We love clean architecture and CQRS, we didn't find any simple Service Bus that 
 
 ## Built-in Middlewares
 
-Whitout Middlewares, a Service Bus is almost useless, we provide built-in [middlewares](/missive.js/guides/middlewares) that you can use out of the box. They are all optional and you can use them all together or just the ones you need.
+Without Middlewares, a Service Bus is almost useless, we provide built-in [middlewares](/missive.js/guides/middlewares) that you can use out of the box. They are all optional and you can use them all together or just the ones you need.
 Middlewares provides a way to handle cross-cutting concerns. They are key to keep your code clean and maintainable.
 And most of all, they are easy to write and to use, and they can be generic!
 
 That's the power of Missive.js! Here are the built-in middlewares:
 
 <CardGrid>
+    <Card title="Validator Middleware" icon="approve-check-circle">
+        <p>Validate the intent before it's handled, and the result after it's handled.</p>
+        <LinkButton href={'/missive.js/built-in-middlewares/validator'} variant="secondary" class="float-right" title={"Read the doc about the Validator Middleware"}>Read the doc</LinkButton>
+    </Card>
     <Card title="Logger Middleware" icon="bars">
         <p>Easily add observability to your application by logging the messages (intent) and the full Envelope (with the Stamps) before and 
         once handled (or errored) in the backend of your choice.</p>
         <LinkButton href={'/missive.js/built-in-middlewares/logger'} variant="secondary" class="float-right" title={"Read the doc about the Logger Middleware"}>Read the doc</LinkButton>
     </Card>
-    <Card title="Caching Middleware" icon="approve-check-circle">
+    <Card title="Caching Middleware" icon="open-book">
         <p>Caches results for faster access in future queries, reducing load and making it blazing fast.</p>
         <LinkButton href={'/missive.js/built-in-middlewares/cacher'} variant="secondary" class="float-right" title={"Read the doc about the Cacher Middleware"}>Read the doc</LinkButton>
     </Card>

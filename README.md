@@ -18,7 +18,7 @@ Please head over to the [documentation site](https://missive-js.github.io/missiv
 ## Install
 
 ```bash
-pnpm add missive.js zod
+pnpm add missive.js
 ```
 
 ## Contributing

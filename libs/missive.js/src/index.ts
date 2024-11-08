@@ -42,3 +42,9 @@ export { createMockerMiddleware } from './middlewares/mocker-middleware.js';
 // Feature Flag
 export type { FeatureFlagFallbackStamp } from './middlewares/feature-flag-middleware.js';
 export { createFeatureFlagMiddleware } from './middlewares/feature-flag-middleware.js';
+
+// Validator
+export { createValidatorMiddleware } from './middlewares/validator-middleware.js';
+
+// Errrors
+export type { MissiveMiddlewareError } from './core/errors.js';
