@@ -6,5 +6,5 @@ title: Install
 type CommandHandlerRegistry = SendRegistrationEmailDefinition & SendNotificationDefinition;
 const bus = createCommandBus<CommandHandlerRegistry>();
 
-bus.register('sendRegistrationEmail', Schema, Factory({ mailer }));
+bus.register('sendRegistrationEmail', Factory({ mailer }));
 ```

@@ -32,11 +32,13 @@ export function createValidatorMiddleware<BusKind extends BusKinds, T extends Me
             throw new MissiveMiddlewareError('validator', 'Invalid message');
         }
         await next();
-        const result = envelope.lastStamp<HandledStamp<T[typeof type]['result']>>('missive:handled');
+        const results = envelope.stampsOfType<HandledStamp<T[typeof type]['result']>>('missive:handled');
 
-        const validateOutput = intents?.[type]?.output ?? identity;
-        if (!validateOutput(result?.body)) {
-            throw new MissiveMiddlewareError('validator', 'Invalid result');
+        for (const result of results) {
+            const validateOutput = intents?.[type]?.output ?? identity;
+            if (!validateOutput(result?.body)) {
+                throw new MissiveMiddlewareError('validator', 'Invalid result');
+            }
         }
     };
 }
