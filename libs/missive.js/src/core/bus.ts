@@ -26,25 +26,29 @@ export type MessageRegistry<
 export type TypedMessage<Message, MessageName extends string = string> = Message & { __type: MessageName };
 
 type MessageHandler<Intent, Result> = (envelope: Envelope<Intent>) => Promise<Result>;
-export type HandlerDefinition<BusKind extends BusKinds, Intent = object, Result = object> = {
+export type HandlerDefinition<BusKind extends BusKinds, Intent = object, Result = object | undefined | void | null> = {
     [key in BusKind]: Intent;
 } & {
     result: Result;
 };
 
-export type CommandHandlerDefinition<Name extends string, Command = object, Result = object> = {
+export type CommandHandlerDefinition<
+    Name extends string,
+    Command = object,
+    Result = object | undefined | void | null,
+> = {
     [key in Name]: {
         command: Command;
         result: Result;
     };
 };
-export type QueryHandlerDefinition<Name extends string, Query = object, Result = object> = {
+export type QueryHandlerDefinition<Name extends string, Query = object, Result = object | undefined | void | null> = {
     [key in Name]: {
         query: Query;
         result: Result;
     };
 };
-export type EventHandlerDefinition<Name extends string, Event = object, Result = object> = {
+export type EventHandlerDefinition<Name extends string, Event = object, Result = object | undefined | void | null> = {
     [key in Name]: {
         event: Event;
         result: Result;
