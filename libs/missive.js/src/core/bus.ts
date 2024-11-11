@@ -1,7 +1,6 @@
 import { createEnvelope, HandledStamp, IdentityStamp, ReprocessedStamp, type Envelope } from './envelope.js';
 import type { Prettify, ReplaceKeys } from '../utils/types.js';
 import type { Middleware } from './middleware.js';
-import { nanoid } from 'nanoid';
 import { createLoggerMiddleware } from '../middlewares/logger-middleware.js';
 import { createCacherMiddleware } from '../middlewares/cacher-middleware.js';
 import { createRetryerMiddleware } from '../middlewares/retryer-middleware.js';
@@ -166,10 +165,17 @@ type HandlerConfig<
         : never
     : never;
 
+type CreateBusOptions = {
+    randomUUID?: () => Promise<string>;
+};
 const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageRegistryType<BusKind>>(args?: {
     middlewares?: Middleware<BusKind, HandlerDefinitions>[];
     handlers?: HandlerConfig<BusKind, HandlerDefinitions>[];
+    options?: CreateBusOptions;
 }): MissiveBus<BusKind, HandlerDefinitions> => {
+    const randomUUID = async () =>
+        `${args?.options?.randomUUID ? args.options.randomUUID() : crypto.randomUUID().toString()}`;
+
     const middlewares: Middleware<BusKind, HandlerDefinitions>[] = args?.middlewares || [];
 
     const registry: {
@@ -263,16 +269,16 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
         const chain = createMiddlewareChain<MessageName>(handlers);
         // if we dispatch an envelope we do not need to create a new one and backup the original stamps
         // while keeping the identity stamp
-        const envelope = (() => {
+        const envelope = await (async () => {
             if (!isEnveloped) {
                 const envelope = createEnvelope(payload);
-                envelope.addStamp<IdentityStamp>('missive:identity', { id: nanoid() });
+                envelope.addStamp<IdentityStamp>('missive:identity', { id: await randomUUID() });
                 return envelope;
             }
             const identity = payload.firstStamp<IdentityStamp>('missive:identity');
             const stamps = payload.stamps.filter((stamp) => stamp.type !== 'missive:identity');
             const envelope = createEnvelope(payload.message);
-            envelope.addStamp<IdentityStamp>('missive:identity', { id: identity?.body?.id || nanoid() });
+            envelope.addStamp<IdentityStamp>('missive:identity', { id: identity?.body?.id || (await randomUUID()) });
             envelope.addStamp<ReprocessedStamp>('missive:reprocessed', {
                 stamps,
             });
@@ -315,6 +321,7 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
 export function createCommandBus<HandlerDefinitions extends CommandMessageRegistryType>(args?: {
     middlewares?: Middleware<'command', HandlerDefinitions>[];
     handlers?: HandlerConfig<'command', HandlerDefinitions>[];
+    options?: CreateBusOptions;
 }): MissiveCommandBus<HandlerDefinitions> {
     const commandBus = createBus<'command', HandlerDefinitions>(args);
 
@@ -357,6 +364,7 @@ export function createCommandBus<HandlerDefinitions extends CommandMessageRegist
 export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryType>(args?: {
     middlewares?: Middleware<'query', HandlerDefinitions>[];
     handlers?: HandlerConfig<'query', HandlerDefinitions>[];
+    options?: CreateBusOptions;
 }): MissiveQueryBus<HandlerDefinitions> {
     const queryBus = createBus<'query', HandlerDefinitions>(args);
 
@@ -399,6 +407,7 @@ export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryTy
 export function createEventBus<HandlerDefinitions extends EventMessageRegistryType>(args?: {
     middlewares?: Middleware<'event', HandlerDefinitions>[];
     handlers?: HandlerConfig<'event', HandlerDefinitions>[];
+    options?: CreateBusOptions;
 }): MissiveEventBus<HandlerDefinitions> {
     const eventBus = createBus<'event', HandlerDefinitions>(args);
     return {

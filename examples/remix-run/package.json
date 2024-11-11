@@ -11,9 +11,9 @@
         "typecheck": "tsc"
     },
     "dependencies": {
-        "@remix-run/node": "^2.13.1",
-        "@remix-run/react": "^2.13.1",
-        "@remix-run/serve": "^2.13.1",
+        "@remix-run/node": "^2.14.0",
+        "@remix-run/react": "^2.14.0",
+        "@remix-run/serve": "^2.14.0",
         "isbot": "^4.4.0",
         "missive.js": "workspace:*",
         "missive.js-shared-code-example": "workspace:*",
@@ -22,7 +22,7 @@
         "zod": "^3.23.8"
     },
     "devDependencies": {
-        "@remix-run/dev": "^2.13.1",
+        "@remix-run/dev": "^2.14.0",
         "@types/react": "^18.3.12",
         "@types/react-dom": "^18.3.1",
         "@typescript-eslint/eslint-plugin": "^6.21.0",
@@ -34,10 +34,10 @@
         "eslint-plugin-jsx-a11y": "^6.10.2",
         "eslint-plugin-react": "^7.37.2",
         "eslint-plugin-react-hooks": "^4.6.2",
-        "postcss": "^8.4.47",
+        "postcss": "^8.4.49",
         "tailwindcss": "^3.4.14",
         "typescript": "^5.6.3",
-        "vite": "^5.4.10",
+        "vite": "^5.4.11",
         "vite-tsconfig-paths": "^4.3.2"
     },
     "engines": {
