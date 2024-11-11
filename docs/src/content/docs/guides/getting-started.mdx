@@ -54,6 +54,17 @@ Once you have your handler(s) ready, you can create your bus(es) and register yo
 
 <CreateBus />
 
+The bus will add `missive:identity` stamp on the envelope to identify it on dispatch. If you want to provide your own _uuid_ genenrator, you can pass it:
+
+```typescript
+const queryBus: QueryBus = createQueryBus<QueryHandlerRegistry>({
+    options: {
+        randomUUID: async () =>  nanoid(),
+    }
+});
+```
+
+
 > More examples are available [on Github](https://github.com/missive-js/missive.js/blob/main/examples/shared/src/core/buses.server.ts).
 
 ## Dispatch an intent

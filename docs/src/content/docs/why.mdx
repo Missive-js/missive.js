@@ -3,9 +3,12 @@ title: Why Missive.js?
 description: A Service Bus concept inspired by CQRS and Clean Architecture with Envelopes and Stamps
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Steps, Aside, FileTree } from '@astrojs/starlight/components';
 import HowDoesItWork from './includes/how-does-it-work.mdx';
+import banner from '../../assets/why-banner.jpeg';
+import { Image } from 'astro:assets';
 
+<Image src={banner} alt="Why Missive.js?" />
 As a developer, whether you primarily work on the backend using frameworks like NestJS, Express, Koa, or Fastify, where your focus is
 solely on backend services, or you focus on frontend development with modern tools like Next.js, Remix, or Astro that integrate backend
 functionality through Backend for Frontend (BFF) patterns, you often need to build and manage server-side code.
@@ -18,6 +21,20 @@ separation of responsibilities and maintainability.
 Missive.js offers a solution by bringing the principles of CQRS (Command Query Responsibility Segregation) and Clean Architecture into your
 projects, whether you are building standalone backend services, frontend applications with backend capabilities, or bridging both. Missive.js
 helps you build modular, maintainable, and scalable systems that cleanly separate concerns and promote best practices.
+
+## Let's simplify CQRS
+
+CQRS (Command Query Responsibility Segregation) is a pattern where we split data handling into three parts:
+
+- **Commands**: These are actions that change data. For example, creating a post or updating a profile. When you submit a form or trigger an action, you're sending a command.
+
+- **Queries**: These are requests to read data without changing it. For example, fetching a list of posts to display on the page. Queries just get information.
+
+- **Events**: When a command is successfully executed (like creating a post), an event is triggered to indicate that something has changed. Events help notify other parts of the system about the update, and the frontend can listen for these events to update the UI in real-time.
+
+<Aside type="tip">
+In summary: `Commands` change data, `Queries` retrieve data. `Events` notify the system when changes happen.
+</Aside>
 
 ## Problem that it solves
 
@@ -57,9 +74,12 @@ And on top of what you can do on your own, Missive.js provides a set of built-in
 -  [**Mocker**](/missive.js/built-in-middlewares/mocker): Mock the result of a specific intent to bypass the handler.
 -  [**Async**](/missive.js/built-in-middlewares/async): Defer handling to a consumer via a queue.
 
-
 This middleware architecture is familiar if you've used libraries like Express, Fastify, Koa, etc. making it intuitive for both backend and frontend developers.
 It centralizes the processing logic, making your code cleaner and easier to maintain.
+
+3. **Clean Architecture**: Missive.js promotes Clean Architecture principles by providing a clear separation of concerns and a structured way to
+   handle Commands, Queries, and Events. This separation makes it easier to maintain and extend your application as it grows.
+
 
 ## How does it work?
 
@@ -113,3 +133,11 @@ This is a common question, and the answer lies in the benefits of using a Servic
     -   _Retry Policies_: Implementing automatic retries for operations that might fail due to transient issues, improving the resilience of your application.
 
 </Aside>
+
+
+## Going further
+
+Here are some resources to help you get started with CQRS, Clean Architecture, and Missive.js:
+
+- [CQRS by Martin Fowler](https://martinfowler.com/bliki/CQRS.html): A detailed explanation of the CQRS pattern by Martin Fowler.
+

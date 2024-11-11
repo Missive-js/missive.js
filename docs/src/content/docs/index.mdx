@@ -12,6 +12,7 @@ hero:
         - text: Get Started
           link: /missive.js/guides/getting-started
           icon: open-book
+          variant: primary
         - text: In a nutshell
           link: '#in-a-nutshell'
           icon: right-arrow
@@ -28,10 +29,13 @@ import CreateHandler from './includes/steps/create-handler.mdx';
 import DefineBus from './includes/steps/create-bus.mdx';
 import Dispatch from './includes/steps/dispatch.mdx';
 
-## Why did we build Missive.js?
+<LinkCard
+    title="Why Missive.js?"
+    href="/missive.js/why"
+    description="We love clean architecture and CQRS, we didn't find any simple Service Bus that fits our needs. If you do not know what's a Service Bus or CQRS, you should read this first."
+/>
 
-We love clean architecture and CQRS, we didn't find any simple Service Bus that fits our needs. More details in the [full article](/missive.js/why).
-
+## Built for simplicity and performance
 <CardGrid stagger>
     <Card title="Easy to use" icon="rocket">
         Simple, pragmatic, super lightweight, no magic, just what you need and all Open Source.

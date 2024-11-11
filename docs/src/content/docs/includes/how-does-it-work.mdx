@@ -3,6 +3,8 @@ title: How does it work?
 ---
 
 import { Steps } from '@astrojs/starlight/components';
+import flow from '../../../assets/missive-js.png';
+import { Image } from 'astro:assets';
 
 With Missive.js, an _intent_ is either a `command`, a `query`, or an `event` and it is created using the specialized bus.
 Usually you will have 3 different buses:
@@ -34,3 +36,7 @@ Here's how it works:
 </Steps>
 This structured pipeline ensures that intents are processed in a controlled and consistent manner, allowing for flexibility in adding features like logging, validation, and custom behavior, 
 all while keeping the core business logic clean and maintainable.
+
+Here is a diagram to illustrate the flow of an intent through Missive.js:
+
+<Image src={flow} alt="Missive.js - Diagram" />
