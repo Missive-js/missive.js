@@ -1,5 +1,6 @@
 import { drizzle } from 'drizzle-orm/libsql';
 import { Envelope, QueryHandlerDefinition } from 'missive.js';
+import { wait } from 'remix-utils/timers';
 import { z } from 'zod';
 import { characters } from '~/db/schema';
 
@@ -14,7 +15,8 @@ type Result = Awaited<ReturnType<typeof handler>>;
 export type ListAllCharactersHandlerDefinition = QueryHandlerDefinition<'ListAllCharacters', Query, Result>;
 
 const handler = async (envelope: Envelope<Query>, { db }: Deps) => {
-    const items = await db.select().from(characters).all();
+    await wait(5000);
+    const items = await db.select().from(characters).limit(2);
     return items;
 };
 export const createListAllCharactersHandler = (deps: Deps) => (query: Envelope<Query>) => handler(query, deps);

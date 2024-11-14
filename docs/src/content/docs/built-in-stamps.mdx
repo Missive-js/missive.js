@@ -45,8 +45,13 @@ If a Middleware adds this stamp, the bus will not run the handler.
 type ReprocessedStamp = Stamp<{ stamps: Stamp[] }, 'missive:reprocessed'>;
 ```
 
-Added when the `envelope` is dispatched through the bus instead of an `intent`. When this happens, 
-the bus will save the original `stamps` in the `ReprocessedStamp` stamp.
+Added when an `envelope` is dispatched through the bus instead of an `intent`.
+> The bus will save the original `stamps` in the `ReprocessedStamp` stamp.
+
+This happens with 2 built-in middlewares:
+
+-  Using the [Async middleware](/missive.js/built-in-middlewares/async) in a consumer, you will get a `ReprocessedStamp` because you should dispatch the `envelope` instead of the `intent`.
+-  Using the [Cacher middleware](/missive.js/built-in-middlewares/cacher) you will get a `ReprocessedStamp` because the middleware will redispatch the `envelope` to the `queryBus` for _Stale While Revalidating_ purposes.
 
 
 ## Added by the Middlewares
@@ -62,10 +67,19 @@ Added when the envelope is sent to a queue via the [Async middleware](/missive.j
 ### FromCacheStamp
 
 ```typescript
-type FromCacheStamp = Stamp<undefined, 'missive:cache:hit'>;
+type FromCacheStamp = Stamp<{ age: number; stale: boolean }, 'missive:cache:hit'>;
 ```
 
 Added when the [Cacher middleware](/missive.js/built-in-middlewares/cacher) finds the result in the cache.
+
+
+### CacheableStamp
+
+```typescript
+export type CacheableStamp = Stamp<{ ttl?: number; staleTtl?: number }, 'missive:cacheable'>;
+```
+That you can add in your handler to have cache on demand. See [Cacher middleware](/missive.js/built-in-middlewares/cacher).
+
 
 ### FeatureFlagFallbackStamp
 

@@ -15,6 +15,7 @@ const stamps = [
     'ReprocessedStamp',
     'AsyncStamp',
     'FromCacheStamp',
+    'CacheableStamp',
     'FeatureFlagFallbackStamp',
     'TimingsStamp',
     'RetriedStamp',
