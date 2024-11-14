@@ -3,7 +3,7 @@ title: Cacher Middleware
 description: Built-in middleware to cache results of queries.
 ---
 
-import { Icon, Aside } from '@astrojs/starlight/components';
+import { Icon, Aside, Steps } from '@astrojs/starlight/components';
 
 The Cacher Middleware is built-in middleware that gives you capability to cache the results of queries. To speed up your application.
 It's only available for _QueryBus_
@@ -18,6 +18,7 @@ queryBus.useCacherMiddleware({
     adapter,
     cache: 'all',
     defaultTtl: 300
+    defaultStaleTtl: 60,
 })
 ```
 
@@ -61,6 +62,7 @@ calling the handler.
 Aside of the `adapter`, you can provide the following parameters to the `createCacherMiddleware` function (and per `intents`):
 - **cache**: `all` or `only-cacheable` (default: `all`) - `all` will cache all results
 - **defaultTtl**: number (default: `3600`) - the default time to live in seconds
+- **defaultStaleTtl**: number (default: `60`) - the default time to return stale data in seconds
 
 ### Cache on demand
 
@@ -70,7 +72,7 @@ Then you need to tell the Middleware which queries are cacheable by adding the `
 ```typescript
 const handler = async (envelope: Envelope<Query>, deps: Deps) => {
     // your handler code here
-    envelope.addStamp<CacheableStamp>('missive:cacheable', { ttl: 1800 });
+    envelope.addStamp<CacheableStamp>('missive:cacheable', { ttl: 1800, staleTtl: 60 });
     return {
         // your result here
     }
@@ -83,7 +85,7 @@ The Cacher Middleware is going to add:
 
     -     
         ```typescript
-        type FromCacheStamp = Stamp<undefined, 'missive:cache:hit'>;
+        type FromCacheStamp = Stamp<{ age: number; stale: boolean }, 'missive:cache:hit'>;
         ```
         > When the result is coming from cache.
 
@@ -122,6 +124,36 @@ The only impact of this flag is wether or not the next middlewares are called or
 
 <Aside title="Why do we default to `shortCircuit: true`" type="tip">
 We believe this is the expected behavior, and as subsequent middlewares might have side-effects, we prefer to skip them in those scenarios. (but you do you!)
+</Aside>
+
+
+## Stale While Revalidating
+
+The Cacher Middleware is using the _Stale While Revalidating_ pattern by redispatching the `query` to the bus behind the scene to refresh the cache.
+
+It works like this:
+
+<Steps>
+
+1. While using the `useCacherMiddleware` method on the QueryBus, the `createCacherMiddleware` is called with the options and with the `QueryBus` instance.
+   
+   It does mean the middleware has access to the bus and can redispatch the intent.
+
+2. When the result is coming from the cache, the middleware will detect if the data is `stale` or not.
+
+   It does mean that the middleware cache for `ttl` seconds + `staleTtl` seconds in the cache store (via the adapter).
+
+3. If the data is _stale_, the middleware will redispatch the `query` to the bus in a fresh new _Envelope_. The `query` will then go through the whole chain of middleware(s) and handler(s), and the result will be cached again.
+
+   The Cacher Middleware knows to avoid the cache lookup thanks to the `ReprocessedStamp` added by the _Envelope_ when the `query` is redispatched.   
+</Steps>
+
+This pattern achieves the best of both worlds: speed and freshness.
+
+You can disable this behavior by setting the `staleTtl` to `0`.
+
+<Aside title="1 revalidate at a time" type="tip">
+The middleware will not revalidate the cache if the `query` is already in the process of being revalidated.
 </Aside>
 
 ## Going further

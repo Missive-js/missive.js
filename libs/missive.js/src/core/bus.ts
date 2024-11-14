@@ -367,8 +367,7 @@ export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryTy
     options?: CreateBusOptions;
 }): MissiveQueryBus<HandlerDefinitions> {
     const queryBus = createBus<'query', HandlerDefinitions>(args);
-
-    return {
+    const bus = {
         use: (middleware: Middleware<'query', HandlerDefinitions>) => queryBus.use(middleware),
         useValidatorMiddleware: (
             ...props: Parameters<typeof createValidatorMiddleware<'query', HandlerDefinitions>>
@@ -388,7 +387,12 @@ export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryTy
             queryBus.use(createWebhookMiddleware(...props));
         },
         useCacherMiddleware: (...props: Parameters<typeof createCacherMiddleware<HandlerDefinitions>>) => {
-            queryBus.use(createCacherMiddleware(...props));
+            queryBus.use(
+                createCacherMiddleware({
+                    ...props[0],
+                    bus,
+                }),
+            );
         },
         useFeatureFlagMiddleware: (
             ...props: Parameters<typeof createFeatureFlagMiddleware<'query', HandlerDefinitions>>
@@ -402,6 +406,7 @@ export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryTy
         dispatch: queryBus.dispatch,
         createQuery: queryBus.createIntent,
     };
+    return bus;
 }
 
 export function createEventBus<HandlerDefinitions extends EventMessageRegistryType>(args?: {

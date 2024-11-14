@@ -11,14 +11,11 @@ import {
     QueryDefitions,
 } from '~/domain/contracts/bus';
 import { drizzle } from 'drizzle-orm/libsql';
-import {
-    createListAllCharactersHandler,
-    ListAllCharactersQuerySchema,
-} from '~/domain/use-cases/read/list-all-characters.server';
+import { createListAllCharactersHandler } from '~/domain/use-cases/read/list-all-characters.server';
 import { DefaultLogger } from 'drizzle-orm/logger';
-import { AddCharacterCommandSchema, createAddCharacterHandler } from '~/domain/use-cases/write/add-character.server';
-import { AddQuestCommandSchema, createAddQuestHandler } from '~/domain/use-cases/write/add-quest.server';
-import { createListAllQuestsHandler, ListAllQuestsQuerySchema } from '~/domain/use-cases/read/list-all-quests.server';
+import { createAddCharacterHandler } from '~/domain/use-cases/write/add-character.server';
+import { createAddQuestHandler } from '~/domain/use-cases/write/add-quest.server';
+import { createListAllQuestsHandler } from '~/domain/use-cases/read/list-all-quests.server';
 import { EventEmitter } from 'events';
 import { createMemoryStorage } from '~/infrastructure/create-memory-storage.server';
 
@@ -76,12 +73,13 @@ export const buildContainer = () => {
         },
     };
 
-    container.cradle.queryBus.useLoggerMiddleware({ logger: observabilityLogger });
+    // container.cradle.queryBus.useLoggerMiddleware({ logger: observabilityLogger });
     container.cradle.queryBus.useLoggerMiddleware({ logger: simpleLogger });
     container.cradle.queryBus.useCacherMiddleware({
         adapter: memoryStorage,
         shortCircuit: true,
-        defaultTtl: 40,
+        defaultTtl: 20,
+        defaultStaleTtl: 100,
         intents: {
             ListAllCharacters: { shortCircuit: true },
         },

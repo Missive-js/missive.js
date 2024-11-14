@@ -1,4 +1,4 @@
-import { json, LoaderFunctionArgs } from '@remix-run/node';
+import { LoaderFunctionArgs } from '@remix-run/node';
 import { Form, useLoaderData } from '@remix-run/react';
 
 export const loader = async ({ context }: LoaderFunctionArgs) => {
@@ -7,10 +7,10 @@ export const loader = async ({ context }: LoaderFunctionArgs) => {
 
     const characters = await context.dispatchQuery(getCharactersIntent);
     const quests = await context.dispatchQuery(getQuestsIntent);
-    return json({
+    return {
         characters: characters.result || [],
         quests: quests.result || [],
-    });
+    };
 };
 export const action = async ({ request, context }: LoaderFunctionArgs) => {
     const post = await request.formData();
@@ -22,14 +22,14 @@ export const action = async ({ request, context }: LoaderFunctionArgs) => {
                 name: `${post.get('name') || 'Unknown'}`,
             });
             const character = await context.dispatchCommand(intent);
-            return json({ character });
+            return { character };
         }
         case 'add-quest': {
             const intent = context.createCommand('AddQuest', {
                 title: `${post.get('title') || 'Unknown'}`,
             });
             const character = await context.dispatchCommand(intent);
-            return json({ character });
+            return { character };
         }
         default:
             throw new Error(`Unknown action: ${action}`);
