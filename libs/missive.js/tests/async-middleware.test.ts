@@ -13,11 +13,11 @@ type MessageRegistry = {
 };
 
 describe('createAsyncMiddleware', () => {
-    let next: ReturnType<typeof vi.fn>;
+    let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
     let envelope: Envelope<TypedMessage<MessageRegistry['test-message']['command']>>;
 
     beforeEach(() => {
-        next = vi.fn();
+        next = vi.fn<() => Promise<void>>();
         envelope = {
             message: { __type: 'test-message', id: 1 },
             stamps: [],
@@ -29,7 +29,9 @@ describe('createAsyncMiddleware', () => {
     });
 
     it('should call produce function and add async stamp when consume is false', async () => {
-        const produce = vi.fn().mockResolvedValue(undefined);
+        const produce = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<void>>()
+            .mockResolvedValue(undefined);
         const middleware = createAsyncMiddleware<'command', MessageRegistry>({
             consume: false,
             produce,
@@ -53,8 +55,12 @@ describe('createAsyncMiddleware', () => {
     });
 
     it('should call intent produce function if defined', async () => {
-        const intentProduce = vi.fn().mockResolvedValue(undefined);
-        const intentProdueSpecific = vi.fn().mockResolvedValue(undefined);
+        const intentProduce = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<void>>()
+            .mockResolvedValue(undefined);
+        const intentProdueSpecific = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<void>>()
+            .mockResolvedValue(undefined);
         const middleware = createAsyncMiddleware<'command', MessageRegistry>({
             consume: false,
             produce: intentProduce,
@@ -77,7 +83,7 @@ describe('createAsyncMiddleware', () => {
         const middleware = createAsyncMiddleware<'command', MessageRegistry>({
             consume: false,
             async: false,
-            produce: vi.fn(),
+            produce: vi.fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<void>>(),
         });
 
         await middleware(envelope, next);
@@ -87,8 +93,12 @@ describe('createAsyncMiddleware', () => {
     });
 
     it('should call next if intent async is false', async () => {
-        const intentProduce = vi.fn().mockResolvedValue(undefined);
-        const intentProdueSpecific = vi.fn().mockResolvedValue(undefined);
+        const intentProduce = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<void>>()
+            .mockResolvedValue(undefined);
+        const intentProdueSpecific = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<void>>()
+            .mockResolvedValue(undefined);
         const middleware = createAsyncMiddleware<'command', MessageRegistry>({
             consume: false,
             produce: intentProduce,

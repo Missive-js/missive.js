@@ -3,10 +3,10 @@ import { createFibonnaciSleeper, createExponentialSleeper } from '../src/utils/s
 
 describe('createFibonnaciSleeper', () => {
     let sleeper: ReturnType<typeof createFibonnaciSleeper>;
-    let sleepMock: ReturnType<typeof vi.fn>;
+    let sleepMock: ReturnType<typeof vi.fn<(s: number) => Promise<unknown>>>;
 
     beforeEach(() => {
-        sleepMock = vi.fn();
+        sleepMock = vi.fn<(s: number) => Promise<unknown>>();
         sleeper = createFibonnaciSleeper(0, { sleepFn: sleepMock });
     });
 
@@ -42,10 +42,10 @@ describe('createFibonnaciSleeper', () => {
 
 describe('createExponentialSleeper with no Jitter', () => {
     let sleeper: ReturnType<typeof createExponentialSleeper>;
-    let sleepMock: ReturnType<typeof vi.fn>;
+    let sleepMock: ReturnType<typeof vi.fn<(s: number) => Promise<unknown>>>;
 
     beforeEach(() => {
-        sleepMock = vi.fn();
+        sleepMock = vi.fn<(s: number) => Promise<unknown>>();
         sleeper = createExponentialSleeper(1.5, 0, { sleepFn: sleepMock });
     });
 
@@ -81,12 +81,12 @@ describe('createExponentialSleeper with no Jitter', () => {
 
 describe('createExponentialSleeper with 50% Jitter', () => {
     let sleeper: ReturnType<typeof createExponentialSleeper>;
-    let sleepMock: ReturnType<typeof vi.fn>;
+    let sleepMock: ReturnType<typeof vi.fn<(s: number) => Promise<unknown>>>;
 
     const jitter = 0.5;
     const range = (delay: number) => [delay * (1 - jitter), delay * (1 + jitter)];
     beforeEach(() => {
-        sleepMock = vi.fn();
+        sleepMock = vi.fn<(s: number) => Promise<unknown>>();
         sleeper = createExponentialSleeper(1.5, 0.5, { sleepFn: sleepMock });
     });
 

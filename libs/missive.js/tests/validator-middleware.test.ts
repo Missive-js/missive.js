@@ -33,10 +33,10 @@ describe('createValidatorMiddleware', () => {
     describe('input validator', () => {
         let middleware: ReturnType<typeof createValidatorMiddleware<'command', Registry>>;
         let envelope: Envelope<TypedMessage<{ id: number }>>;
-        let next: ReturnType<typeof vi.fn>;
+        let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
         beforeEach(() => {
-            next = vi.fn();
+            next = vi.fn<() => Promise<void>>();
         });
 
         it('should not throw an error if it does not have validator', async () => {
@@ -82,10 +82,10 @@ describe('createValidatorMiddleware', () => {
     describe('output validator', () => {
         let middleware: ReturnType<typeof createValidatorMiddleware<'command', Registry>>;
         let envelope: Envelope<TypedMessage<{ id: number }, 'test message'>>;
-        let next: ReturnType<typeof vi.fn>;
+        let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
         beforeEach(() => {
-            next = vi.fn();
+            next = vi.fn<() => Promise<void>>();
         });
 
         it('should not throw an error if it does not have validator', async () => {

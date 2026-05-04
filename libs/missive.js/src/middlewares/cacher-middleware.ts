@@ -10,6 +10,7 @@ export type CacherAdapter = {
 
 export type CacheableStamp = Stamp<{ ttl?: number; staleTtl?: number }, 'missive:cacheable'>;
 export type FromCacheStamp = Stamp<{ age: number; stale: boolean }, 'missive:cache:hit'>;
+export type RevalidatingStamp = Stamp<undefined, 'missive:cache:revalidating'>;
 
 const hashKey = async (data: string): Promise<string> => {
     const encoder = new TextEncoder();
@@ -62,9 +63,10 @@ export function createCacherMiddleware<T extends QueryMessageRegistryType>({
         const staleWhileRevalidateTtl = cachingOptions.defaultStaleTtl ?? defaultStaleTtl;
         let stale = false;
         const reprocessed = envelope.firstStamp<ReprocessedStamp>('missive:reprocessed');
+        const revalidating = envelope.firstStamp<RevalidatingStamp>('missive:cache:revalidating');
 
-        // we don't look for cache if the message has been reprocessed
-        const cacheEntry = reprocessed ? null : ((await adapter.get(key)) as CacheEntry | null);
+        // skip the cache when reprocessed, or when this pass is the SWR revalidation itself
+        const cacheEntry = reprocessed || revalidating ? null : ((await adapter.get(key)) as CacheEntry | null);
 
         if (cacheEntry) {
             const age = now - cacheEntry.timestamp;
@@ -73,11 +75,19 @@ export function createCacherMiddleware<T extends QueryMessageRegistryType>({
             envelope.addStamp<FromCacheStamp>('missive:cache:hit', { age, stale });
         }
 
-        if (bus && !reprocessed && stale && staleWhileRevalidateTtl > 0 && !inProgressRevalidations.has(key)) {
+        if (
+            bus &&
+            !reprocessed &&
+            !revalidating &&
+            stale &&
+            staleWhileRevalidateTtl > 0 &&
+            !inProgressRevalidations.has(key)
+        ) {
             inProgressRevalidations.add(key);
             // remove cache stamps so the revalidation can re-enter the chain without short-circuiting
             const skipOnRevalidate = new Set(['missive:cache:hit', 'missive:handled', 'missive:identity']);
             const newEnvelope = createEnvelope(envelope.message);
+            newEnvelope.addStamp<RevalidatingStamp>('missive:cache:revalidating');
             for (const stamp of envelope.stamps) {
                 if (!skipOnRevalidate.has(stamp.type)) {
                     newEnvelope.addStamp(stamp.type, stamp.body);

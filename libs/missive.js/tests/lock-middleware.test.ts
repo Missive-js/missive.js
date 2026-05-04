@@ -12,12 +12,12 @@ type MessageRegistry = {
     };
 };
 describe('createLockMiddleware', () => {
-    let next: ReturnType<typeof vi.fn>;
+    let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
     let envelope: Envelope<TypedMessage<MessageRegistry['test-message']['command']>>;
     let adapter: LockAdapter;
 
     beforeEach(() => {
-        next = vi.fn();
+        next = vi.fn<() => Promise<void>>();
         envelope = {
             message: { __type: 'test-message', id: 1 },
             stamps: [],
@@ -34,7 +34,7 @@ describe('createLockMiddleware', () => {
 
     it('work when everything is working', async () => {
         const middleware = createLockMiddleware<'command', MessageRegistry>({
-            getLockKey: async (e) => {
+            getLockKey: async (e: Envelope<TypedMessage<MessageRegistry['test-message']['command']>>) => {
                 return e.message.id.toString();
             },
             adapter,
@@ -51,7 +51,7 @@ describe('createLockMiddleware', () => {
     });
     it('should throw an error if next is throwing an error', async () => {
         const middleware = createLockMiddleware<'command', MessageRegistry>({
-            getLockKey: async (e) => {
+            getLockKey: async (e: Envelope<TypedMessage<MessageRegistry['test-message']['command']>>) => {
                 return e.message.id.toString();
             },
             adapter,
@@ -68,7 +68,7 @@ describe('createLockMiddleware', () => {
 
     it('should throw an error if the lock is not acquired and there is no timeout', async () => {
         const middleware = createLockMiddleware<'command', MessageRegistry>({
-            getLockKey: async (e) => {
+            getLockKey: async (e: Envelope<TypedMessage<MessageRegistry['test-message']['command']>>) => {
                 return e.message.id.toString();
             },
             adapter,
@@ -81,7 +81,7 @@ describe('createLockMiddleware', () => {
 
     it('should retry to get the lock', async () => {
         const middleware = createLockMiddleware<'command', MessageRegistry>({
-            getLockKey: async (e) => {
+            getLockKey: async (e: Envelope<TypedMessage<MessageRegistry['test-message']['command']>>) => {
                 return e.message.id.toString();
             },
             adapter,

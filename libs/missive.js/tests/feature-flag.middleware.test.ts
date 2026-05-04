@@ -4,13 +4,13 @@ import { Envelope } from '../src/core/envelope';
 import { TypedMessage } from '../src/core/bus';
 
 describe('createFeatureFlagMiddleware', () => {
-    let featureFlagChecker: ReturnType<typeof vi.fn>;
+    let featureFlagChecker: ReturnType<typeof vi.fn<(intent: string) => Promise<boolean>>>;
     let middleware: ReturnType<typeof createFeatureFlagMiddleware>;
     let envelope: Envelope<TypedMessage<object>>;
-    let next: ReturnType<typeof vi.fn>;
+    let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
     beforeEach(() => {
-        featureFlagChecker = vi.fn();
+        featureFlagChecker = vi.fn<(intent: string) => Promise<boolean>>();
         envelope = {
             __type: 'test-message',
             message: { __type: 'test-message' },
@@ -19,7 +19,7 @@ describe('createFeatureFlagMiddleware', () => {
             firstStamp: vi.fn(),
             lastStamp: vi.fn(),
         } as unknown as Envelope<TypedMessage<object>>;
-        next = vi.fn();
+        next = vi.fn<() => Promise<void>>();
     });
 
     it('should call next when feature flag is allowed', async () => {
@@ -38,7 +38,9 @@ describe('createFeatureFlagMiddleware', () => {
 
     it('should call fallback handler and add stamps when feature flag is not allowed', async () => {
         featureFlagChecker.mockResolvedValue(false);
-        const fallbackHandler = vi.fn().mockResolvedValue('fallback-result');
+        const fallbackHandler = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<object | undefined | void | null>>()
+            .mockResolvedValue({ data: 'fallback-result' });
 
         middleware = createFeatureFlagMiddleware({
             featureFlagChecker,
@@ -53,14 +55,16 @@ describe('createFeatureFlagMiddleware', () => {
 
         expect(featureFlagChecker).toHaveBeenCalledWith('test-message');
         expect(fallbackHandler).toHaveBeenCalledWith(envelope);
-        expect(envelope.addStamp).toHaveBeenCalledWith('missive:handled', 'fallback-result');
+        expect(envelope.addStamp).toHaveBeenCalledWith('missive:handled', { data: 'fallback-result' });
         expect(envelope.addStamp).toHaveBeenCalledWith('missive:feature-flag-fallback');
         expect(next).not.toHaveBeenCalled();
     });
 
     it('should call next after fallback handler when shortCircuit is false', async () => {
         featureFlagChecker.mockResolvedValue(false);
-        const fallbackHandler = vi.fn().mockResolvedValue('fallback-result');
+        const fallbackHandler = vi
+            .fn<(envelope: Envelope<TypedMessage<unknown>>) => Promise<object | undefined | void | null>>()
+            .mockResolvedValue({ data: 'fallback-result' });
 
         middleware = createFeatureFlagMiddleware({
             featureFlagChecker,
@@ -76,7 +80,7 @@ describe('createFeatureFlagMiddleware', () => {
 
         expect(featureFlagChecker).toHaveBeenCalledWith('test-message');
         expect(fallbackHandler).toHaveBeenCalledWith(envelope);
-        expect(envelope.addStamp).toHaveBeenCalledWith('missive:handled', 'fallback-result');
+        expect(envelope.addStamp).toHaveBeenCalledWith('missive:handled', { data: 'fallback-result' });
         expect(envelope.addStamp).toHaveBeenCalledWith('missive:feature-flag-fallback');
         expect(next).toHaveBeenCalled();
     });

@@ -7,7 +7,7 @@ describe('createLoggerMiddleware', () => {
     let adapter: LoggerAdapter;
     let middleware: ReturnType<typeof createLoggerMiddleware>;
     let envelope: Envelope<TypedMessage<unknown>>;
-    let next: ReturnType<typeof vi.fn>;
+    let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
 
     beforeEach(() => {
         adapter = {
@@ -22,7 +22,7 @@ describe('createLoggerMiddleware', () => {
             firstStamp: vi.fn().mockReturnValue(undefined),
             stampsOfType: vi.fn().mockReturnValue([]),
         } as unknown as Envelope<TypedMessage<unknown>>;
-        next = vi.fn();
+        next = vi.fn<() => Promise<void>>();
     });
 
     it('should log processing and processed steps when collect is false', async () => {

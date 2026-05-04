@@ -4,11 +4,11 @@ import { createEnvelope, Envelope } from '../src/core/envelope';
 import { TypedMessage } from '../src/core/bus';
 
 describe('createRetryerMiddleware', () => {
-    let nextMock: ReturnType<typeof vi.fn>;
+    let nextMock: ReturnType<typeof vi.fn<() => Promise<void>>>;
     let envelope: Envelope<TypedMessage<unknown>>;
 
     beforeEach(() => {
-        nextMock = vi.fn();
+        nextMock = vi.fn<() => Promise<void>>();
         envelope = {
             ...createEnvelope('test message'),
             __type: 'test-message',

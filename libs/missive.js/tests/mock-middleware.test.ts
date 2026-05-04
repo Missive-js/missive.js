@@ -4,9 +4,10 @@ import { Envelope } from '../src/core/envelope';
 import { TypedMessage } from '../src/core/bus';
 
 describe('createMockerMiddleware', () => {
+    type HandlerFn = (envelope: Envelope<TypedMessage<unknown>>) => Promise<object | undefined | void | null>;
     let envelope: Envelope<TypedMessage<unknown>>;
-    let next: ReturnType<typeof vi.fn>;
-    let handler: ReturnType<typeof vi.fn>;
+    let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
+    let handler: ReturnType<typeof vi.fn<HandlerFn>>;
 
     beforeEach(() => {
         envelope = {
@@ -16,8 +17,8 @@ describe('createMockerMiddleware', () => {
             firstStamp: vi.fn().mockReturnValue(undefined),
             stampsOfType: vi.fn().mockReturnValue([]),
         } as unknown as Envelope<TypedMessage<unknown>>;
-        next = vi.fn();
-        handler = vi.fn().mockResolvedValue('testResult');
+        next = vi.fn<() => Promise<void>>();
+        handler = vi.fn<HandlerFn>().mockResolvedValue({ data: 'testResult' });
     });
 
     it('should call the handler and add a handled stamp when the handler is defined', async () => {
@@ -30,7 +31,7 @@ describe('createMockerMiddleware', () => {
         await middleware(envelope, next);
 
         expect(handler).toHaveBeenCalledWith(envelope);
-        expect(envelope.addStamp).toHaveBeenCalledWith('missive:handled', 'testResult');
+        expect(envelope.addStamp).toHaveBeenCalledWith('missive:handled', { data: 'testResult' });
         expect(next).toHaveBeenCalled();
     });
 

@@ -5,8 +5,8 @@ import { MessageRegistryType, TypedMessage } from '../src/core/bus';
 
 describe('createWebhookMiddleware', () => {
     let envelope: Envelope<TypedMessage<{ payload: string }>>;
-    let next: ReturnType<typeof vi.fn>;
-    let fetchMock: ReturnType<typeof vi.fn>;
+    let next: ReturnType<typeof vi.fn<() => Promise<void>>>;
+    let fetchMock: ReturnType<typeof vi.fn<typeof fetch>>;
 
     beforeEach(() => {
         envelope = {
@@ -16,11 +16,11 @@ describe('createWebhookMiddleware', () => {
             firstStamp: vi.fn(),
             lastStamp: vi.fn(),
         } as unknown as Envelope<TypedMessage<{ payload: string }>>;
-        next = vi.fn();
-        fetchMock = vi.fn().mockResolvedValue({
+        next = vi.fn<() => Promise<void>>();
+        fetchMock = vi.fn<typeof fetch>().mockResolvedValue({
             text: vi.fn().mockResolvedValue('response text'),
             status: 418,
-        });
+        } as unknown as Response);
     });
 
     it('should call webhook endpoints in parallel', async () => {
@@ -107,7 +107,7 @@ describe('createWebhookMiddleware', () => {
         fetchMock.mockResolvedValueOnce({
             text: vi.fn().mockResolvedValue('response text'),
             status: 200,
-        });
+        } as unknown as Response);
 
         const middleware = createWebhookMiddleware<'command', MessageRegistryType<'command'>>({
             waitingAlgorithm: 'none',
