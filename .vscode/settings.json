@@ -4,6 +4,8 @@
     "editor.formatOnSave": true,
     "editor.formatOnPaste": true,
     "typescript.suggest.paths": true,
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "typescript.enablePromptUseWorkspaceTsdk": true,
     "files.exclude": {
         "**/.git": true,
         "**/.svn": true,

@@ -35,31 +35,25 @@ export function createLockMiddleware<BusKind extends BusKinds, T extends Message
     const adapter = options.adapter ?? createInMemoryLockAdapter();
     return async (envelope, next) => {
         const type = envelope.message.__type as keyof T;
-        const ttl = options.intents?.[type]?.ttl ?? options.ttl ?? 500;
-        const tick = options.intents?.[type]?.tick ?? options.tick ?? 100;
-        const getLockKey = options.intents?.[type]?.getLockKey ?? options.getLockKey;
+        const intent = options.intents?.[type];
+        const ttl = intent?.ttl ?? options.ttl ?? 500;
+        const tick = intent?.tick ?? options.tick ?? 100;
+        const timeout = intent?.timeout ?? options.timeout ?? 5000;
+        const getLockKey = intent?.getLockKey ?? options.getLockKey;
         const lockKey = await getLockKey(envelope);
+        const deadline = Date.now() + timeout;
 
-        async function doUnderLock(timeout: number) {
-            const isAcquired = await adapter.acquire(lockKey, ttl);
-            if (isAcquired) {
-                try {
-                    await next();
-                    await adapter.release(lockKey);
-                    return;
-                } catch (error) {
-                    await adapter.release(lockKey);
-                    throw error;
-                }
-            } else {
-                if (Date.now() < timeout) {
-                    await new Promise((resolve) => setTimeout(resolve, tick));
-                    return doUnderLock(timeout);
-                }
-
+        while (!(await adapter.acquire(lockKey, ttl))) {
+            if (Date.now() >= deadline) {
                 throw new Error('Lock not acquired or timeout');
             }
+            await new Promise((resolve) => setTimeout(resolve, tick));
         }
-        await doUnderLock(Date.now() + (options.intents?.[type]?.timeout ?? options.timeout ?? 5000));
+
+        try {
+            await next();
+        } finally {
+            await adapter.release(lockKey);
+        }
     };
 }

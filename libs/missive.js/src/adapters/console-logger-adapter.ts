@@ -16,7 +16,7 @@ export function createLoggerAdapter({ logger, serializer = JSON.stringify }: Dep
                 }),
             ),
         processed: (identity, message, results, stamps) => {
-            const timings = stamps.filter((stamp) => stamp.type === 'missive:timings')?.[0] as TimingsStamp | undefined;
+            const timings = stamps.find((stamp) => stamp.type === 'missive:timings') as TimingsStamp | undefined;
             logger.log(
                 `[Envelope<${identity?.body?.id}>](Processed${timings?.body?.total ? ` in ${(timings.body.total / 1000000).toFixed(4)} ms` : ''})`,
                 serializer({
@@ -27,7 +27,7 @@ export function createLoggerAdapter({ logger, serializer = JSON.stringify }: Dep
             );
         },
         error: (identity, message, results, stamps) => {
-            const timings = stamps.filter((stamp) => stamp.type === 'missive:timings')?.[0] as TimingsStamp | undefined;
+            const timings = stamps.find((stamp) => stamp.type === 'missive:timings') as TimingsStamp | undefined;
             logger.error(
                 `[Envelope<${identity?.body?.id}>](Errored${timings?.body?.total ? ` in ${(timings.body.total / 1000000).toFixed(4)} ms` : ''}`,
                 serializer({

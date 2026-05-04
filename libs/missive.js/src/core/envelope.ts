@@ -32,7 +32,7 @@ export function createEnvelope<T>(message: T): Envelope<T> {
             return stamps.find((stamp) => stamp.type === type) as S;
         },
         lastStamp: <S extends Stamp>(type: S['type']) => {
-            return [...stamps].reverse().find((stamp) => stamp.type === type) as S;
+            return stamps.findLast((stamp) => stamp.type === type) as S;
         },
     };
 }

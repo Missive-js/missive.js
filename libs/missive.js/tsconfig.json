@@ -4,7 +4,12 @@
         "strict": true,
         "noImplicitAny": true,
         "declaration": true,
-        "outDir": "./build"
+        "rootDir": "./src",
+        "outDir": "./build",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "types": ["node"],
+        "ignoreDeprecations": "6.0"
     },
     "include": ["src/**/*.ts"]
 }

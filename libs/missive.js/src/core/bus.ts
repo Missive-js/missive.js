@@ -64,7 +64,10 @@ type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegi
     use: (middleware: Middleware<BusKind, HandlerDefinitions>) => void;
     register: <MessageName extends keyof HandlerDefinitions & string>(
         type: MessageName,
-        handler: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>,
+        handler: MessageHandler<
+            HandlerDefinitions[NoInfer<MessageName>][BusKind],
+            HandlerDefinitions[NoInfer<MessageName>]['result']
+        >,
     ) => void;
     dispatch: {
         <MessageName extends keyof HandlerDefinitions & string>(
@@ -84,7 +87,7 @@ type MissiveBus<BusKind extends BusKinds, HandlerDefinitions extends MessageRegi
     };
     createIntent: <MessageName extends keyof HandlerDefinitions & string>(
         type: MessageName,
-        intent: HandlerDefinitions[MessageName][BusKind],
+        intent: HandlerDefinitions[NoInfer<MessageName>][BusKind],
     ) => TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>;
 };
 
@@ -173,19 +176,15 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
     handlers?: HandlerConfig<BusKind, HandlerDefinitions>[];
     options?: CreateBusOptions;
 }): MissiveBus<BusKind, HandlerDefinitions> => {
-    const randomUUID = async () =>
-        `${args?.options?.randomUUID ? args.options.randomUUID() : crypto.randomUUID().toString()}`;
+    const randomUUID = args?.options?.randomUUID ?? (async () => crypto.randomUUID());
 
-    const middlewares: Middleware<BusKind, HandlerDefinitions>[] = args?.middlewares || [];
+    const middlewares: Middleware<BusKind, HandlerDefinitions>[] = args?.middlewares ?? [];
 
-    const registry: {
-        [MessageName in keyof HandlerDefinitions & string]?: {
-            handlers: MessageHandler<
-                HandlerDefinitions[MessageName][BusKind],
-                HandlerDefinitions[MessageName]['result']
-            >[];
-        };
-    } = {};
+    type Handler<MessageName extends keyof HandlerDefinitions & string> = MessageHandler<
+        HandlerDefinitions[MessageName][BusKind],
+        HandlerDefinitions[MessageName]['result']
+    >;
+    const registry: { [MessageName in keyof HandlerDefinitions & string]?: Handler<MessageName>[] } = {};
 
     const useMiddleware = (middleware: Middleware<BusKind, HandlerDefinitions>) => {
         middlewares.push(middleware);
@@ -193,62 +192,68 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
 
     const registerHandler = <MessageName extends keyof HandlerDefinitions & string>(
         messageName: MessageName,
-        handler: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>,
+        handler: Handler<NoInfer<MessageName>>,
     ) => {
-        if (!registry[messageName]) {
-            registry[messageName] = { handlers: [] };
-        }
-        registry[messageName].handlers.push(handler);
+        (registry[messageName] ??= []).push(handler);
     };
 
-    if (args?.handlers) {
-        for (const { messageName, handler } of args.handlers) {
-            registerHandler(messageName as keyof HandlerDefinitions & string, handler);
-        }
+    for (const { messageName, handler } of args?.handlers ?? []) {
+        registerHandler(messageName as keyof HandlerDefinitions & string, handler);
     }
 
-    const createMiddlewareChain = <MessageName extends keyof HandlerDefinitions & string>(
-        handlers: MessageHandler<HandlerDefinitions[MessageName][BusKind], HandlerDefinitions[MessageName]['result']>[],
+    const runChain = async <MessageName extends keyof HandlerDefinitions & string>(
+        envelope: Envelope<HandlerDefinitions[MessageName][BusKind]>,
+        handlers: Handler<MessageName>[],
     ) => {
-        return async (envelope: Envelope<HandlerDefinitions[MessageName][BusKind]>) => {
-            let index = 0;
-            const next = async () => {
-                if (index < middlewares.length) {
-                    const middleware = middlewares[index++];
-                    // we give the __type to the middleware only
-                    await middleware(
-                        envelope as Envelope<TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>>,
-                        next,
-                    );
-                } else {
-                    // we do not run the handlers if the message has already been handled. by a previous middleware like cache
-                    if (
-                        envelope.stampsOfType<HandledStamp<HandlerDefinitions[MessageName]['result']>>(
-                            'missive:handled',
-                        ).length > 0
-                    ) {
-                        return;
-                    }
-                    const results = await Promise.all(handlers.map(async (handler) => await handler(envelope)));
-                    results.forEach((result) =>
-                        envelope.addStamp<HandledStamp<HandlerDefinitions[MessageName]['result']>>(
-                            'missive:handled',
-                            result,
-                        ),
-                    );
-                }
-            };
-            await next();
+        type Result = HandlerDefinitions[MessageName]['result'];
+        let index = 0;
+        const next = async () => {
+            if (index < middlewares.length) {
+                const middleware = middlewares[index++];
+                // we give the __type to the middleware only
+                await middleware(
+                    envelope as Envelope<TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>>,
+                    next,
+                );
+                return;
+            }
+            // skip the handlers if a previous middleware (e.g. cache) already produced a result
+            if (envelope.stampsOfType<HandledStamp<Result>>('missive:handled').length > 0) {
+                return;
+            }
+            const results = await Promise.all(handlers.map((handler) => handler(envelope)));
+            for (const result of results) {
+                envelope.addStamp<HandledStamp<Result>>('missive:handled', result);
+            }
         };
+        await next();
     };
 
-    function isEnvelope<MessageName extends keyof HandlerDefinitions & string>(
+    const isEnvelope = <MessageName extends keyof HandlerDefinitions & string>(
         payload:
             | ExtractedMessage<BusKind, HandlerDefinitions, MessageName>
             | Envelope<ExtractedMessage<BusKind, HandlerDefinitions, MessageName>>,
-    ): payload is Envelope<ExtractedMessage<BusKind, HandlerDefinitions, MessageName>> {
-        return payload && 'stamps' in payload && 'message' in payload;
-    }
+    ): payload is Envelope<ExtractedMessage<BusKind, HandlerDefinitions, MessageName>> =>
+        !!payload && 'stamps' in payload && 'message' in payload;
+
+    const buildEnvelope = async <MessageName extends keyof HandlerDefinitions & string>(
+        payload:
+            | ExtractedMessage<BusKind, HandlerDefinitions, MessageName>
+            | Envelope<ExtractedMessage<BusKind, HandlerDefinitions, MessageName>>,
+    ): Promise<Envelope<HandlerDefinitions[MessageName][BusKind]>> => {
+        if (!isEnvelope(payload)) {
+            const envelope = createEnvelope(payload);
+            envelope.addStamp<IdentityStamp>('missive:identity', { id: await randomUUID() });
+            return envelope;
+        }
+        // re-dispatch: keep the original identity, preserve the prior stamps under a reprocessed stamp
+        const identity = payload.firstStamp<IdentityStamp>('missive:identity');
+        const previousStamps = payload.stamps.filter((stamp) => stamp.type !== 'missive:identity');
+        const envelope = createEnvelope(payload.message);
+        envelope.addStamp<IdentityStamp>('missive:identity', { id: identity?.body?.id || (await randomUUID()) });
+        envelope.addStamp<ReprocessedStamp>('missive:reprocessed', { stamps: previousStamps });
+        return envelope;
+    };
 
     const dispatch = async <MessageName extends keyof HandlerDefinitions & string>(
         payload:
@@ -259,57 +264,32 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
         result: HandlerDefinitions[MessageName]['result'] | undefined;
         results: (HandlerDefinitions[MessageName]['result'] | undefined)[];
     }> => {
-        const isEnveloped = isEnvelope(payload);
-        const type = isEnveloped ? payload.message.__type : payload.__type;
-        const entry = registry[type];
-        if (!entry) {
+        type Result = HandlerDefinitions[MessageName]['result'];
+        const type = isEnvelope(payload) ? payload.message.__type : payload.__type;
+        const handlers = registry[type];
+        if (!handlers) {
             throw new Error(`No handler found for type: ${type}`);
         }
-        const { handlers } = entry;
-        const chain = createMiddlewareChain<MessageName>(handlers);
-        // if we dispatch an envelope we do not need to create a new one and backup the original stamps
-        // while keeping the identity stamp
-        const envelope = await (async () => {
-            if (!isEnveloped) {
-                const envelope = createEnvelope(payload);
-                envelope.addStamp<IdentityStamp>('missive:identity', { id: await randomUUID() });
-                return envelope;
-            }
-            const identity = payload.firstStamp<IdentityStamp>('missive:identity');
-            const stamps = payload.stamps.filter((stamp) => stamp.type !== 'missive:identity');
-            const envelope = createEnvelope(payload.message);
-            envelope.addStamp<IdentityStamp>('missive:identity', { id: identity?.body?.id || (await randomUUID()) });
-            envelope.addStamp<ReprocessedStamp>('missive:reprocessed', {
-                stamps,
-            });
-            return envelope;
-        })();
-        await chain(envelope);
+        const envelope = await buildEnvelope<MessageName>(payload);
+        await runChain<MessageName>(envelope, handlers as Handler<MessageName>[]);
+        const handledStamps = envelope.stampsOfType<HandledStamp<Result>>('missive:handled');
         return {
             envelope,
-            result: envelope.lastStamp<HandledStamp<HandlerDefinitions[MessageName]['result']>>('missive:handled')
-                ?.body,
-            results:
-                envelope
-                    .stampsOfType<HandledStamp<HandlerDefinitions[MessageName]['result']>>('missive:handled')
-                    .map((r) => r?.body) || [],
+            result: handledStamps.at(-1)?.body,
+            results: handledStamps.map((r) => r?.body),
         };
     };
 
     const createIntent = <MessageName extends keyof HandlerDefinitions & string>(
         type: MessageName,
-        intent: HandlerDefinitions[MessageName][BusKind],
+        intent: HandlerDefinitions[NoInfer<MessageName>][BusKind],
     ): ExtractedMessage<BusKind, HandlerDefinitions, MessageName> => {
-        const entry = registry[type];
-        if (!entry) {
+        if (!registry[type]) {
             throw new Error(`No handler found for type: ${type}`);
         }
-
-        return {
-            __type: type,
-            ...intent,
-        };
+        return { __type: type, ...intent };
     };
+
     return {
         use: useMiddleware,
         register: registerHandler,
@@ -318,43 +298,29 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
     };
 };
 
+// Binds `bus.use(factory(...args))` so per-bus facades don't repeat the same shape per middleware.
+const wrap =
+    <P extends unknown[], M>(bus: { use: (m: M) => void }, factory: (...args: P) => M) =>
+    (...args: P): void => {
+        bus.use(factory(...args));
+    };
+
 export function createCommandBus<HandlerDefinitions extends CommandMessageRegistryType>(args?: {
     middlewares?: Middleware<'command', HandlerDefinitions>[];
     handlers?: HandlerConfig<'command', HandlerDefinitions>[];
     options?: CreateBusOptions;
 }): MissiveCommandBus<HandlerDefinitions> {
     const commandBus = createBus<'command', HandlerDefinitions>(args);
-
     return {
-        use: (middleware: Middleware<'command', HandlerDefinitions>) => commandBus.use(middleware),
-        useValidatorMiddleware: (
-            ...props: Parameters<typeof createValidatorMiddleware<'command', HandlerDefinitions>>
-        ) => {
-            commandBus.use(createValidatorMiddleware(...props));
-        },
-        useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'command', HandlerDefinitions>>) => {
-            commandBus.use(createLoggerMiddleware(...props));
-        },
-        useLockMiddleware: (...props: Parameters<typeof createLockMiddleware<'command', HandlerDefinitions>>) => {
-            commandBus.use(createLockMiddleware(...props));
-        },
-        useRetryerMiddleware: (...props: Parameters<typeof createRetryerMiddleware<'command', HandlerDefinitions>>) => {
-            commandBus.use(createRetryerMiddleware(...props));
-        },
-        useWebhookMiddleware: (...props: Parameters<typeof createWebhookMiddleware<'command', HandlerDefinitions>>) => {
-            commandBus.use(createWebhookMiddleware(...props));
-        },
-        useFeatureFlagMiddleware: (
-            ...props: Parameters<typeof createFeatureFlagMiddleware<'command', HandlerDefinitions>>
-        ) => {
-            commandBus.use(createFeatureFlagMiddleware(...props));
-        },
-        useMockerMiddleware: (...props: Parameters<typeof createMockerMiddleware<'command', HandlerDefinitions>>) => {
-            commandBus.use(createMockerMiddleware(...props));
-        },
-        useAsyncMiddleware: (...props: Parameters<typeof createAsyncMiddleware<'command', HandlerDefinitions>>) => {
-            commandBus.use(createAsyncMiddleware(...props));
-        },
+        use: commandBus.use,
+        useValidatorMiddleware: wrap(commandBus, createValidatorMiddleware<'command', HandlerDefinitions>),
+        useLoggerMiddleware: wrap(commandBus, createLoggerMiddleware<'command', HandlerDefinitions>),
+        useLockMiddleware: wrap(commandBus, createLockMiddleware<'command', HandlerDefinitions>),
+        useRetryerMiddleware: wrap(commandBus, createRetryerMiddleware<'command', HandlerDefinitions>),
+        useWebhookMiddleware: wrap(commandBus, createWebhookMiddleware<'command', HandlerDefinitions>),
+        useFeatureFlagMiddleware: wrap(commandBus, createFeatureFlagMiddleware<'command', HandlerDefinitions>),
+        useMockerMiddleware: wrap(commandBus, createMockerMiddleware<'command', HandlerDefinitions>),
+        useAsyncMiddleware: wrap(commandBus, createAsyncMiddleware<'command', HandlerDefinitions>),
         register: commandBus.register,
         dispatch: commandBus.dispatch,
         createCommand: commandBus.createIntent,
@@ -367,40 +333,18 @@ export function createQueryBus<HandlerDefinitions extends QueryMessageRegistryTy
     options?: CreateBusOptions;
 }): MissiveQueryBus<HandlerDefinitions> {
     const queryBus = createBus<'query', HandlerDefinitions>(args);
-    const bus = {
-        use: (middleware: Middleware<'query', HandlerDefinitions>) => queryBus.use(middleware),
-        useValidatorMiddleware: (
-            ...props: Parameters<typeof createValidatorMiddleware<'query', HandlerDefinitions>>
-        ) => {
-            queryBus.use(createValidatorMiddleware(...props));
-        },
-        useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'query', HandlerDefinitions>>) => {
-            queryBus.use(createLoggerMiddleware(...props));
-        },
-        useLockMiddleware: (...props: Parameters<typeof createLockMiddleware<'query', HandlerDefinitions>>) => {
-            queryBus.use(createLockMiddleware(...props));
-        },
-        useRetryerMiddleware: (...props: Parameters<typeof createRetryerMiddleware<'query', HandlerDefinitions>>) => {
-            queryBus.use(createRetryerMiddleware(...props));
-        },
-        useWebhookMiddleware: (...props: Parameters<typeof createWebhookMiddleware<'query', HandlerDefinitions>>) => {
-            queryBus.use(createWebhookMiddleware(...props));
-        },
+    const bus: MissiveQueryBus<HandlerDefinitions> = {
+        use: queryBus.use,
+        useValidatorMiddleware: wrap(queryBus, createValidatorMiddleware<'query', HandlerDefinitions>),
+        useLoggerMiddleware: wrap(queryBus, createLoggerMiddleware<'query', HandlerDefinitions>),
+        useLockMiddleware: wrap(queryBus, createLockMiddleware<'query', HandlerDefinitions>),
+        useRetryerMiddleware: wrap(queryBus, createRetryerMiddleware<'query', HandlerDefinitions>),
+        useWebhookMiddleware: wrap(queryBus, createWebhookMiddleware<'query', HandlerDefinitions>),
+        useFeatureFlagMiddleware: wrap(queryBus, createFeatureFlagMiddleware<'query', HandlerDefinitions>),
+        useMockerMiddleware: wrap(queryBus, createMockerMiddleware<'query', HandlerDefinitions>),
+        // cacher needs the bus reference for stale-while-revalidate, so it can't go through `wrap` directly
         useCacherMiddleware: (...props: Parameters<typeof createCacherMiddleware<HandlerDefinitions>>) => {
-            queryBus.use(
-                createCacherMiddleware({
-                    ...props[0],
-                    bus,
-                }),
-            );
-        },
-        useFeatureFlagMiddleware: (
-            ...props: Parameters<typeof createFeatureFlagMiddleware<'query', HandlerDefinitions>>
-        ) => {
-            queryBus.use(createFeatureFlagMiddleware(...props));
-        },
-        useMockerMiddleware: (...props: Parameters<typeof createMockerMiddleware<'query', HandlerDefinitions>>) => {
-            queryBus.use(createMockerMiddleware(...props));
+            queryBus.use(createCacherMiddleware({ ...props[0], bus }));
         },
         register: queryBus.register,
         dispatch: queryBus.dispatch,
@@ -416,35 +360,15 @@ export function createEventBus<HandlerDefinitions extends EventMessageRegistryTy
 }): MissiveEventBus<HandlerDefinitions> {
     const eventBus = createBus<'event', HandlerDefinitions>(args);
     return {
-        use: (middleware: Middleware<'event', HandlerDefinitions>) => eventBus.use(middleware),
-        useValidatorMiddleware: (
-            ...props: Parameters<typeof createValidatorMiddleware<'event', HandlerDefinitions>>
-        ) => {
-            eventBus.use(createValidatorMiddleware(...props));
-        },
-        useLoggerMiddleware: (...props: Parameters<typeof createLoggerMiddleware<'event', HandlerDefinitions>>) => {
-            eventBus.use(createLoggerMiddleware(...props));
-        },
-        useLockMiddleware: (...props: Parameters<typeof createLockMiddleware<'event', HandlerDefinitions>>) => {
-            eventBus.use(createLockMiddleware(...props));
-        },
-        useRetryerMiddleware: (...props: Parameters<typeof createRetryerMiddleware<'event', HandlerDefinitions>>) => {
-            eventBus.use(createRetryerMiddleware(...props));
-        },
-        useWebhookMiddleware: (...props: Parameters<typeof createWebhookMiddleware<'event', HandlerDefinitions>>) => {
-            eventBus.use(createWebhookMiddleware(...props));
-        },
-        useFeatureFlagMiddleware: (
-            ...props: Parameters<typeof createFeatureFlagMiddleware<'event', HandlerDefinitions>>
-        ) => {
-            eventBus.use(createFeatureFlagMiddleware(...props));
-        },
-        useMockerMiddleware: (...props: Parameters<typeof createMockerMiddleware<'event', HandlerDefinitions>>) => {
-            eventBus.use(createMockerMiddleware(...props));
-        },
-        useAsyncMiddleware: (...props: Parameters<typeof createAsyncMiddleware<'event', HandlerDefinitions>>) => {
-            eventBus.use(createAsyncMiddleware(...props));
-        },
+        use: eventBus.use,
+        useValidatorMiddleware: wrap(eventBus, createValidatorMiddleware<'event', HandlerDefinitions>),
+        useLoggerMiddleware: wrap(eventBus, createLoggerMiddleware<'event', HandlerDefinitions>),
+        useLockMiddleware: wrap(eventBus, createLockMiddleware<'event', HandlerDefinitions>),
+        useRetryerMiddleware: wrap(eventBus, createRetryerMiddleware<'event', HandlerDefinitions>),
+        useWebhookMiddleware: wrap(eventBus, createWebhookMiddleware<'event', HandlerDefinitions>),
+        useFeatureFlagMiddleware: wrap(eventBus, createFeatureFlagMiddleware<'event', HandlerDefinitions>),
+        useMockerMiddleware: wrap(eventBus, createMockerMiddleware<'event', HandlerDefinitions>),
+        useAsyncMiddleware: wrap(eventBus, createAsyncMiddleware<'event', HandlerDefinitions>),
         register: eventBus.register,
         dispatch: eventBus.dispatch,
         createEvent: eventBus.createIntent,

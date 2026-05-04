@@ -8,10 +8,10 @@ The Service Bus that you needed!
 
 ## Documentation
 
--   [Getting Started](https://missive-js.github.io/missive.js/guides/getting-started/)
--   [Why you should use Missive.js](https://missive-js.github.io/missive.js/why/)
+- [Getting Started](https://missive-js.github.io/missive.js/guides/getting-started/)
+- [Why you should use Missive.js](https://missive-js.github.io/missive.js/why/)
 
--   [Simple CLI example](https://github.com/Missive-js/missive.js/blob/main/examples/cli/src/index.ts)
+- [Simple CLI example](https://github.com/Missive-js/missive.js/blob/main/examples/cli/src/index.ts)
 
 Please head over to the [documentation site](https://missive-js.github.io/missive.js/) for more information!
 

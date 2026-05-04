@@ -16,26 +16,22 @@ type NarrowedEnvelope<BusKind extends BusKinds, T extends MessageRegistryType<Bu
     MessageRegistry<BusKind, Pick<T, K>>
 >;
 
-function identity() {
-    return true;
-}
+const pass = () => true;
 
 export function createValidatorMiddleware<BusKind extends BusKinds, T extends MessageRegistryType<BusKind>>(
     input?: Validators<BusKind, T>,
 ): Middleware<BusKind, T> {
     return async (envelope, next) => {
-        const intents = input?.intents;
-
         const type = envelope.message.__type as keyof T;
-        const validateInput = intents?.[type]?.input ?? identity;
+        const intent = input?.intents?.[type];
+        const validateInput = intent?.input ?? pass;
         if (!validateInput(envelope.message)) {
             throw new MissiveMiddlewareError('validator', 'Invalid message');
         }
         await next();
+        const validateOutput = intent?.output ?? pass;
         const results = envelope.stampsOfType<HandledStamp<T[typeof type]['result']>>('missive:handled');
-
         for (const result of results) {
-            const validateOutput = intents?.[type]?.output ?? identity;
             if (!validateOutput(result?.body)) {
                 throw new MissiveMiddlewareError('validator', 'Invalid result');
             }

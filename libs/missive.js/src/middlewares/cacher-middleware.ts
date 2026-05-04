@@ -50,7 +50,7 @@ export function createCacherMiddleware<T extends QueryMessageRegistryType>({
     if (!adapter) {
         adapter = createMemoryCacheAdapter();
     }
-    const inProgressRevalidations: string[] = [];
+    const inProgressRevalidations = new Set<string>();
 
     return async (envelope, next) => {
         const type = envelope.message.__type as keyof T;
@@ -73,26 +73,19 @@ export function createCacherMiddleware<T extends QueryMessageRegistryType>({
             envelope.addStamp<FromCacheStamp>('missive:cache:hit', { age, stale });
         }
 
-        if (bus && !reprocessed && stale && staleWhileRevalidateTtl > 0 && !inProgressRevalidations.includes(key)) {
-            inProgressRevalidations.push(key);
-            // we need to remove the cache stamps to avoid infinite loops
+        if (bus && !reprocessed && stale && staleWhileRevalidateTtl > 0 && !inProgressRevalidations.has(key)) {
+            inProgressRevalidations.add(key);
+            // remove cache stamps so the revalidation can re-enter the chain without short-circuiting
+            const skipOnRevalidate = new Set(['missive:cache:hit', 'missive:handled', 'missive:identity']);
             const newEnvelope = createEnvelope(envelope.message);
-            envelope.stamps.forEach((stamp) => {
-                if (
-                    stamp.type !== 'missive:cache:hit' &&
-                    stamp.type !== 'missive:handled' &&
-                    stamp.type !== 'missive:identity'
-                ) {
+            for (const stamp of envelope.stamps) {
+                if (!skipOnRevalidate.has(stamp.type)) {
                     newEnvelope.addStamp(stamp.type, stamp.body);
                 }
-            });
+            }
             bus.dispatch(newEnvelope)
-                .then(() => {
-                    inProgressRevalidations.splice(inProgressRevalidations.indexOf(key), 1);
-                })
-                .catch(() => {
-                    inProgressRevalidations.splice(inProgressRevalidations.indexOf(key), 1);
-                });
+                .catch(() => {})
+                .finally(() => inProgressRevalidations.delete(key));
             return;
         }
 

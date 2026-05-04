@@ -81,7 +81,7 @@ export function createWebhookMiddleware<BusKind extends BusKinds, T extends Mess
             if (failedEndpoints.length === 0) break;
             indexedEndpoints = failedEndpoints;
             attempt++;
-            sleeper.wait();
+            await sleeper.wait();
         } while (attempt <= maxAttempts);
 
         return endpoints.map((_, i) => {
@@ -124,7 +124,7 @@ export function createWebhookMiddleware<BusKind extends BusKinds, T extends Mess
                     break;
                 } catch {
                     attempt++;
-                    sleeper.wait();
+                    await sleeper.wait();
                     continue;
                 }
             } while (attempt <= maxAttempts);
