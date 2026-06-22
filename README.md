@@ -21,6 +21,22 @@ Please head over to the [documentation site](https://missive-js.github.io/missiv
 pnpm add missive.js
 ```
 
+## Use it with your AI coding agent
+
+Missive.js ships an Agent Skill that teaches your AI assistant to build with the library
+correctly — typed contracts, handlers, the middleware catalog, and custom adapters. Its design
+(contracts as the spec, typed dependency-injection seams) is a particularly good fit for
+AI-assisted coding.
+
+Install the skill into your project with the [skills CLI](https://skills.sh):
+
+```bash
+npx skills add missive-js/missive.js
+```
+
+Your agent picks it up automatically on its next session (it installs into `.claude/skills/`). See
+[AI-Assisted Coding](https://missive-js.github.io/missive.js/ai-assisted-coding/) for the full story.
+
 ## Contributing
 
 See [CONTRIBUTING.md in the repo](.github/CONTRIBUTING.md).

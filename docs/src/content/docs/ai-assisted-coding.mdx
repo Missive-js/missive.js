@@ -1,0 +1,163 @@
+---
+title: AI-Assisted Coding
+description: Why Missive.js's typed contracts, intents and dependency injection make it an excellent base for coding with AI assistants
+---
+
+import { Aside, Steps, Card, CardGrid, Icon } from '@astrojs/starlight/components';
+
+AI coding assistants are at their best when the task is **narrow, typed, and verifiable**, and at
+their worst when they have to guess at an architecture, invent interfaces, or reverse-engineer how
+the pieces fit. Missive.js happens to be built out of exactly the primitives that keep an assistant
+on the rails: a _contract_ describes what a message looks like, an _intent_ is fully typed, and your
+business logic lives behind small, explicit dependency seams.
+
+In other words: you (or the assistant) declare the shape, and the compiler holds everyone — including
+the AI — to it.
+
+## Why Missive.js fits AI-assisted coding
+
+<CardGrid>
+    <Card title="The contract is the spec" icon="document">
+        A `CommandHandlerDefinition` / `QueryHandlerDefinition` / `EventHandlerDefinition` is a precise,
+        typed description of one message. Once it exists, the types of `register`, `createCommand`,
+        `dispatch` and the handler itself are all _derived_ from it. An implementation that drifts from
+        the spec simply fails to compile.
+    </Card>
+    <Card title="Typed seams, not guesswork" icon="puzzle">
+        Handlers receive their dependencies through a plain `Deps` type and the message through a typed
+        _Envelope_. The assistant writes pure logic against a fixed interface — it never has to invent
+        how to reach the database or where to wire things.
+    </Card>
+    <Card title="Adapters are tiny interfaces" icon="setting">
+        Need Redis caching or a distributed lock? That is a 2–3 method interface (`CacherAdapter`,
+        `LockAdapter`). "Implement this adapter" is an unambiguous, individually testable task — the
+        ideal unit of work to delegate.
+    </Card>
+    <Card title="Cross-cutting concerns stay out of the way" icon="random">
+        Validation, caching, logging, retries and the rest are _middleware_. Business logic stays clean,
+        so the assistant only ever touches the handler body and its contract.
+    </Card>
+</CardGrid>
+
+<Aside type="tip" title="The mental shift">
+With Missive.js you describe **what** a message is and **what** a handler depends on, then ask the
+assistant to fill in the logic. The contract and the dependency interfaces are the prompt — and the
+TypeScript compiler is the reviewer that never gets tired.
+</Aside>
+
+## The workflow
+
+A Missive.js feature is a **vertical slice**: a single file holding the schema, the derived types,
+the _contract_, the handler, and a factory that injects dependencies. That slice is the perfect
+hand-off boundary for an assistant.
+
+<Steps>
+
+1.  **Write the contract first.** Define the input schema and let the result type be inferred from the
+    handler, so the two can never disagree.
+
+    ```typescript
+    import { z } from 'zod';
+    import { CommandHandlerDefinition, Envelope } from 'missive.js';
+
+    type Deps = { userRepo: UserRepo }; // the seam the assistant codes behind
+
+    export const createUserCommandSchema = z.object({
+        firstname: z.string(),
+        lastname: z.string(),
+        email: z.string().email(),
+    });
+
+    type Command = z.infer<typeof createUserCommandSchema>;
+    type Result = Awaited<ReturnType<typeof handler>>;
+    export type CreateUserHandlerDefinition = CommandHandlerDefinition<'createUser', Command, Result>;
+    ```
+
+2.  **Hand the assistant the envelope type and the `Deps` interface, and ask for the handler.** Because
+    the input and result are fixed by the contract, a wrong implementation will not type-check.
+
+    ```typescript
+    const handler = async (envelope: Envelope<Command>, deps: Deps) => {
+        const { firstname, lastname, email } = envelope.message;
+        const userId = await deps.userRepo.create({ firstname, lastname, email });
+        return { userId, success: true };
+    };
+
+    export const createCreateUserHandler = (deps: Deps) => (command: Envelope<Command>) =>
+        handler(command, deps);
+    ```
+
+3.  **Wire it in the composition root.** Register the factory with the real dependencies and attach
+    runtime validation through the validator middleware (validation is a middleware, _not_ an argument
+    to `register`).
+
+    ```typescript
+    const commandBus: CommandBus = createCommandBus<CommandHandlerRegistry>();
+
+    commandBus.useValidatorMiddleware({
+        intents: {
+            createUser: { input: (message) => createUserCommandSchema.safeParse(message).success },
+        },
+    });
+
+    commandBus.register('createUser', createCreateUserHandler({ userRepo }));
+    ```
+
+4.  **Dispatch.** The call site stays fully typed end to end.
+
+    ```typescript
+    const intent = commandBus.createCommand('createUser', {
+        firstname: 'Ada', lastname: 'Lovelace', email: 'ada@example.com',
+    });
+    const { result } = await commandBus.dispatch(intent);
+    ```
+
+5.  **For infrastructure, ask for an adapter.** "Write a Redis `CacherAdapter`" is a small, contract-bound
+    task: implement `get(key)` and `set(key, value, ttl)`, then pass it to `useCacherMiddleware`. Build
+    against the in-memory default first, swap the adapter later — no other code changes.
+
+</Steps>
+
+<Aside type="note" title="Queries and events are the same shape">
+Swap `CommandHandlerDefinition` for `QueryHandlerDefinition` / `EventHandlerDefinition`,
+`createCommandBus` for `createQueryBus` / `createEventBus`, and `createCommand` for `createQuery` /
+`createEvent`. The contract's input key must match the bus kind (`command` / `query` / `event`). See
+[Getting started](/missive.js/guides/getting-started) for the full walkthrough.
+</Aside>
+
+## A skill your assistant can load
+
+This repository ships a **Claude Code / Agent skill** — `using-missive-js` — that teaches an
+assistant the mental model, the golden-path recipe above, the full middleware catalog, and the
+correctness rules that prevent plausible-but-wrong code (for example: `register` takes no schema
+argument; the cacher's TTL is in seconds while the lock's is in milliseconds). Point your assistant
+at it and the patterns on this page become its default behavior.
+
+Install it into your project with the [skills CLI](https://skills.sh):
+
+```bash
+npx skills add missive-js/missive.js
+```
+
+This drops the skill into `.claude/skills/`, and your agent picks it up automatically on its next
+session. The source lives under [`skills/using-missive-js`](https://github.com/missive-js/missive.js/tree/main/skills/using-missive-js)
+in the repository, with deep-dive references for contracts, middlewares, adapters, and project
+structure.
+
+<Aside type="caution" title="A note on older snippets">
+If an assistant suggests `bus.register('name', Schema, Factory)` with a schema argument, it is
+following an outdated example. The current API is `register(name, handler)` — runtime validation
+lives in the [validator middleware](/missive.js/built-in-middlewares/validator).
+</Aside>
+
+## Going further
+
+<Steps>
+
+1. Read [Why Missive.js?](/missive.js/why) for the architecture behind these primitives.
+
+2. Follow [Getting started](/missive.js/guides/getting-started) to build your first slice by hand.
+
+3. Browse the example apps and the skill on GitHub: <a href="https://github.com/missive-js/missive.js"><Icon name="github" /> missive-js/missive.js</a>.
+
+</Steps>

@@ -66,6 +66,14 @@ export default defineConfig({
                     },
                 },
                 {
+                    label: 'AI-Assisted Coding',
+                    slug: 'ai-assisted-coding',
+                    badge: {
+                        text: 'new',
+                        variant: 'tip',
+                    },
+                },
+                {
                     label: 'Guides',
                     autogenerate: { directory: 'guides' },
                 },
