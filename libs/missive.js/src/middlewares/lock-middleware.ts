@@ -5,8 +5,8 @@ import { createInMemoryLockAdapter } from '../adapters/in-memory-lock-adapter.js
 import { Envelope } from '../core/envelope.js';
 
 export type LockAdapter = {
-    acquire: (key: string, ttl: number) => Promise<boolean>;
-    release: (key: string) => Promise<void>;
+    acquire: (key: string, ttl: number, token: string) => Promise<boolean>;
+    release: (key: string, token: string) => Promise<void>;
 };
 
 type BasicOptions = {
@@ -41,9 +41,11 @@ export function createLockMiddleware<BusKind extends BusKinds, T extends Message
         const timeout = intent?.timeout ?? options.timeout ?? 5000;
         const getLockKey = intent?.getLockKey ?? options.getLockKey;
         const lockKey = await getLockKey(envelope);
+        // fencing token: tie this acquisition to this release so we never free a lock we no longer hold
+        const token = crypto.randomUUID();
         const deadline = Date.now() + timeout;
 
-        while (!(await adapter.acquire(lockKey, ttl))) {
+        while (!(await adapter.acquire(lockKey, ttl, token))) {
             if (Date.now() >= deadline) {
                 throw new Error('Lock not acquired or timeout');
             }
@@ -53,7 +55,7 @@ export function createLockMiddleware<BusKind extends BusKinds, T extends Message
         try {
             await next();
         } finally {
-            await adapter.release(lockKey);
+            await adapter.release(lockKey, token);
         }
     };
 }

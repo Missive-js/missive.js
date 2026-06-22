@@ -2,6 +2,7 @@ import { expect, it, beforeEach, describe } from 'vitest';
 import { Envelope } from '../src/core/envelope';
 import { createQueryBus, QueryBus } from '../src/core/bus';
 import { Middleware } from '../src/core/middleware';
+import { createRetryerMiddleware } from '../src/middlewares/retryer-middleware';
 
 type MyEvents = {
     event1: { query: { foo: string }; result: { bar: number } };
@@ -217,6 +218,32 @@ describe('Bus', () => {
 
         expect(middleware1Executed).toBe(true);
         expect(middleware2Executed).toBe(true);
+    });
+
+    it('re-runs downstream middlewares on every retry attempt', async () => {
+        let downstreamRuns = 0;
+        let handlerCalls = 0;
+
+        bus.use(createRetryerMiddleware<'query', MyEvents>({ maxAttempts: 3, waitingAlgorithm: 'none' }));
+        const downstream: Middleware<'query', MyEvents> = async (envelope, next) => {
+            downstreamRuns++;
+            await next();
+        };
+        bus.use(downstream);
+
+        const handler = async (): Promise<MyEvents['event1']['result']> => {
+            handlerCalls++;
+            if (handlerCalls < 3) throw new Error('boom');
+            return { bar: 42 };
+        };
+        bus.register('event1', handler);
+
+        const result = await bus.dispatch(bus.createQuery('event1', { foo: 'test' }));
+
+        expect(handlerCalls).toBe(3);
+        // each retry must re-enter the whole downstream chain, not just the terminal handler
+        expect(downstreamRuns).toBe(3);
+        expect(result.result).toEqual({ bar: 42 });
     });
 
     it('should execute middleware and handlers together correctly', async () => {

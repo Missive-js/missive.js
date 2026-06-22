@@ -216,6 +216,40 @@ describe('createCacherMiddleware', () => {
         expect(adapter.set).not.toHaveBeenCalled();
     });
 
+    it('does not cache a result when the handler reported an error stamp', async () => {
+        (adapter.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        (envelope.lastStamp as ReturnType<typeof vi.fn>).mockReturnValue({ body: { data: 'partial' } });
+        envelope.stamps.push({ type: 'error', body: { message: 'boom' }, date: new Date() });
+
+        middleware = createCacherMiddleware({ adapter });
+
+        await middleware(envelope, next);
+
+        expect(next).toHaveBeenCalled();
+        expect(adapter.set).not.toHaveBeenCalled();
+    });
+
+    it('reports revalidation errors via onRevalidationError', async () => {
+        const onRevalidationError = vi.fn();
+        const bus = {
+            dispatch: vi.fn().mockRejectedValue(new Error('revalidation boom')),
+            //eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as unknown as QueryBus<any>;
+        (adapter.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+            timestamp: Date.now() / 1000 - 4000,
+            data: { data: 'stale' },
+        });
+        (envelope.lastStamp as ReturnType<typeof vi.fn>).mockReturnValue({ body: { data: 'result' } });
+
+        middleware = createCacherMiddleware({ adapter, bus, onRevalidationError });
+
+        await middleware(envelope, next);
+
+        await vi.waitFor(() => {
+            expect(onRevalidationError).toHaveBeenCalledWith(expect.any(Error));
+        });
+    });
+
     it('should not use cache when message is reprocessed', async () => {
         (adapter.get as ReturnType<typeof vi.fn>).mockResolvedValue({
             timestamp: Date.now() / 1000,
@@ -417,6 +451,26 @@ describe('createCacherMiddleware - integration with real envelopes', () => {
 
         expect(dispatch).toHaveBeenCalledTimes(1);
         expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces concurrent cold-cache fills so the handler runs once', async () => {
+        const handler = vi.fn(async (env: Envelope<TypedMessage<{ query: string }>>) => {
+            await new Promise((r) => setTimeout(r, 20));
+            env.addStamp('missive:handled', { data: 'fresh' });
+        });
+        const middleware = createCacherMiddleware({ adapter, defaultTtl: 100, defaultStaleTtl: 60 });
+
+        const message = makeMessage();
+        const env1 = createEnvelope(message);
+        const env2 = createEnvelope(message);
+
+        // two concurrent dispatches for the same cold key
+        await Promise.all([middleware(env1, () => handler(env1)), middleware(env2, () => handler(env2))]);
+
+        // the expensive handler must run exactly once; the second dispatch serves the freshly-filled value
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(env1.firstStamp('missive:handled')?.body).toEqual({ data: 'fresh' });
+        expect(env2.firstStamp('missive:handled')?.body).toEqual({ data: 'fresh' });
     });
 
     it('clears inProgressRevalidations when the revalidation rejects', async () => {

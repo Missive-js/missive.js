@@ -1,4 +1,4 @@
-import { BusKinds, MessageRegistry, MessageRegistryType } from '../core/bus.js';
+import { BusKinds, MessageRegistry, MessageRegistryType, TypedMessage } from '../core/bus.js';
 import { Envelope, HandledStamp } from '../core/envelope.js';
 import { Middleware } from '../core/middleware.js';
 import { MissiveMiddlewareError } from '../core/errors.js';
@@ -13,7 +13,7 @@ type Validators<BusKind extends BusKinds, T extends MessageRegistryType<BusKind>
 };
 
 type NarrowedEnvelope<BusKind extends BusKinds, T extends MessageRegistryType<BusKind>, K extends keyof T> = Envelope<
-    MessageRegistry<BusKind, Pick<T, K>>
+    TypedMessage<MessageRegistry<BusKind, Pick<T, K>>>
 >;
 
 const pass = () => true;

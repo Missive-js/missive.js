@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createLoggerMiddleware, LoggerAdapter } from '../src/middlewares/logger-middleware';
-import { Envelope } from '../src/core/envelope';
+import { createEnvelope, Envelope } from '../src/core/envelope';
 import { TypedMessage } from '../src/core/bus';
 
 describe('createLoggerMiddleware', () => {
@@ -64,5 +64,28 @@ describe('createLoggerMiddleware', () => {
         expect(adapter.processing).toHaveBeenCalledWith(undefined, 'test message', [], []);
         expect(adapter.processed).toHaveBeenCalledWith(undefined, 'test message', [], []);
         expect(adapter.error).not.toHaveBeenCalled();
+    });
+
+    it('logs the pre-processing state for the processing step in collect mode', async () => {
+        const processingResults: number[] = [];
+        const processingStampTypes: string[][] = [];
+        const captureAdapter: LoggerAdapter = {
+            processing: (_id: unknown, _msg: unknown, results: unknown[], stamps: { type: string }[]) => {
+                processingResults.push(results.length);
+                processingStampTypes.push(stamps.map((s) => s.type));
+            },
+            processed: () => {},
+            error: () => {},
+        };
+        const middlewareCollect = createLoggerMiddleware({ adapter: captureAdapter, collect: true, async: false });
+        const realEnvelope = createEnvelope({ __type: 'm', x: 1 } as TypedMessage<{ x: number }>);
+
+        await middlewareCollect(realEnvelope, async () => {
+            realEnvelope.addStamp('missive:handled', { ok: true });
+        });
+
+        // "processing" must reflect the state BEFORE next(): no handled result and no timings stamp yet
+        expect(processingResults[0]).toBe(0);
+        expect(processingStampTypes[0]).not.toContain('missive:timings');
     });
 });

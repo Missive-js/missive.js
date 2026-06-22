@@ -1,7 +1,7 @@
 import { BusKinds, MessageRegistryType } from '../core/bus.js';
 import { Envelope, Stamp } from '../core/envelope.js';
 import { Middleware } from '../core/middleware.js';
-import { buildSleeper, Sleeper, sleeperFactory } from '../utils/sleeper.js';
+import { buildSleeper, Sleeper } from '../utils/sleeper.js';
 import { RetryConfiguration } from '../utils/types.js';
 
 type WebhookEndpoint = {
@@ -24,12 +24,13 @@ type Options<Def> = BasicOptions & {
 };
 
 export type WebhookCalledStamp = Stamp<{ attempt: number; text?: string; status?: number }, 'missive:webhook-called'>;
+
+type EndpointCallResult = { text?: string; status?: number; index: number; attempt: number };
+
 export function createWebhookMiddleware<BusKind extends BusKinds, T extends MessageRegistryType<BusKind>>(
     options: Partial<Options<T>> = {},
 ): Middleware<BusKind, T> {
     const fetchFn = options.fetcher || fetch;
-    const defaultSleeper = buildSleeper(options);
-    const sleeperRegistry: Record<string, ReturnType<typeof sleeperFactory>> = {};
 
     const callEndpoint = async (endpoint: WebhookEndpoint, envelope: Envelope<unknown>) => {
         const body = JSON.stringify(envelope);
@@ -54,47 +55,37 @@ export function createWebhookMiddleware<BusKind extends BusKinds, T extends Mess
         envelope: Envelope<unknown>,
         sleeper: Sleeper,
         maxAttempts: number,
-    ) => {
-        let indexedEndpoints = endpoints.map((endpoint, index) => ({
+    ): Promise<EndpointCallResult[]> => {
+        // one slot per ORIGINAL endpoint index, so results never desync from their endpoint across retry rounds
+        const finalResults: EndpointCallResult[] = endpoints.map((_, index) => ({
             text: undefined,
             status: undefined,
-            endpoint,
             index,
             attempt: 0,
         }));
+        let pending = endpoints.map((endpoint, index) => ({ endpoint, index }));
         let attempt = 1;
-        let results: PromiseSettledResult<{ text?: string; status?: number; index: number; attempt: number }>[];
         sleeper.reset();
-        do {
-            results = await Promise.allSettled(
-                indexedEndpoints.map(async ({ endpoint, index }) => {
-                    const { text, status } = await callEndpoint(endpoint, envelope);
-                    return {
-                        text,
-                        status,
-                        attempt,
-                        index,
-                    };
-                }),
-            );
-            const failedEndpoints = indexedEndpoints.filter((_, idx) => results[idx].status === 'rejected');
-            if (failedEndpoints.length === 0) break;
-            indexedEndpoints = failedEndpoints;
+        while (pending.length > 0) {
+            const settled = await Promise.allSettled(pending.map(({ endpoint }) => callEndpoint(endpoint, envelope)));
+            const stillFailing: { endpoint: WebhookEndpoint; index: number }[] = [];
+            settled.forEach((result, i) => {
+                const { endpoint, index } = pending[i];
+                if (result.status === 'fulfilled') {
+                    finalResults[index] = { ...result.value, index, attempt };
+                } else {
+                    finalResults[index] = { text: undefined, status: undefined, index, attempt };
+                    stillFailing.push({ endpoint, index });
+                }
+            });
+            if (stillFailing.length === 0) break;
             attempt++;
+            if (attempt > maxAttempts) break;
+            // only the still-failing endpoints are retried in the next round
+            pending = stillFailing;
             await sleeper.wait();
-        } while (attempt <= maxAttempts);
-
-        return endpoints.map((_, i) => {
-            const result = results[i];
-            return result?.status === 'fulfilled'
-                ? result.value
-                : {
-                      text: undefined,
-                      status: undefined,
-                      index: i,
-                      attempt: maxAttempts,
-                  };
-        });
+        }
+        return finalResults;
     };
 
     const callEndpointsSequentially = async (
@@ -102,21 +93,21 @@ export function createWebhookMiddleware<BusKind extends BusKinds, T extends Mess
         envelope: Envelope<unknown>,
         sleeper: Sleeper,
         maxAttempts: number,
-    ) => {
-        const indexedEndpoints: {
-            text?: string;
-            status?: number;
-            index: number;
-            attempt: number;
-            endpoint: WebhookEndpoint;
-        }[] = endpoints.map((endpoint, index) => ({ text: undefined, status: undefined, endpoint, index, attempt: 0 }));
-        let attempt = 1;
-        sleeper.reset();
-        for (const { endpoint, index } of indexedEndpoints) {
-            let text;
-            let status;
-
-            do {
+    ): Promise<EndpointCallResult[]> => {
+        const results: EndpointCallResult[] = endpoints.map((_, index) => ({
+            text: undefined,
+            status: undefined,
+            index,
+            attempt: 0,
+        }));
+        for (let index = 0; index < endpoints.length; index++) {
+            const endpoint = endpoints[index];
+            // each endpoint gets its own attempt budget and backoff schedule
+            let attempt = 1;
+            sleeper.reset();
+            let text: string | undefined;
+            let status: number | undefined;
+            for (;;) {
                 try {
                     const response = await callEndpoint(endpoint, envelope);
                     text = response.text;
@@ -124,51 +115,50 @@ export function createWebhookMiddleware<BusKind extends BusKinds, T extends Mess
                     break;
                 } catch {
                     attempt++;
+                    if (attempt > maxAttempts) break;
                     await sleeper.wait();
-                    continue;
                 }
-            } while (attempt <= maxAttempts);
-            indexedEndpoints[index].attempt = attempt;
-            indexedEndpoints[index].status = status;
-            indexedEndpoints[index].text = text;
+            }
+            results[index] = { text, status, index, attempt };
         }
-        return indexedEndpoints;
+        return results;
     };
 
     return async (envelope, next) => {
         await next();
         const type = envelope.message.__type;
-        if (options?.intents?.[type] && !sleeperRegistry[type]) {
-            sleeperRegistry[type] = buildSleeper(options.intents[type]);
+        const intent = options.intents?.[type];
+        // endpoints may be configured per-intent or at the top level
+        const endpoints = intent?.endpoints ?? options.endpoints;
+        if (!endpoints || endpoints.length === 0) {
+            return;
         }
-        const maxAttempts = options.intents?.[type]?.maxAttempts || options.maxAttempts || 3;
-        const sleeper = sleeperRegistry[type] || defaultSleeper;
-        const parallel = options.intents?.[type]?.parallel ?? options.parallel;
-        const async = options.intents?.[type]?.async ?? options.async;
+        const maxAttempts = intent?.maxAttempts ?? options.maxAttempts ?? 3;
+        // build a fresh sleeper per dispatch so concurrent dispatches don't corrupt each other's backoff state
+        const sleeper = buildSleeper(intent ?? options);
+        const parallel = intent?.parallel ?? options.parallel;
+        const async = intent?.async ?? options.async;
 
-        if (options.intents?.[type]) {
-            const endpoints = options.intents[type].endpoints;
-            const results = await (async () => {
-                if (parallel) {
-                    if (!async) {
-                        return await callEndpointsInParallel(endpoints, envelope, sleeper, maxAttempts);
-                    }
-                    callEndpointsInParallel(endpoints, envelope, sleeper, maxAttempts);
-                    return [];
-                }
+        const results = await (async () => {
+            if (parallel) {
                 if (!async) {
-                    return await callEndpointsSequentially(endpoints, envelope, sleeper, maxAttempts);
+                    return await callEndpointsInParallel(endpoints, envelope, sleeper, maxAttempts);
                 }
-                callEndpointsSequentially(endpoints, envelope, sleeper, maxAttempts);
+                callEndpointsInParallel(endpoints, envelope, sleeper, maxAttempts);
                 return [];
-            })();
-            for (const result of results) {
-                envelope.addStamp<WebhookCalledStamp>('missive:webhook-called', {
-                    attempt: result.attempt,
-                    text: result.text,
-                    status: result.status,
-                });
             }
+            if (!async) {
+                return await callEndpointsSequentially(endpoints, envelope, sleeper, maxAttempts);
+            }
+            callEndpointsSequentially(endpoints, envelope, sleeper, maxAttempts);
+            return [];
+        })();
+        for (const result of results) {
+            envelope.addStamp<WebhookCalledStamp>('missive:webhook-called', {
+                attempt: result.attempt,
+                text: result.text,
+                status: result.status,
+            });
         }
     };
 }

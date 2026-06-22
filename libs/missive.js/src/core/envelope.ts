@@ -29,10 +29,10 @@ export function createEnvelope<T>(message: T): Envelope<T> {
             return stamps.filter((stamp) => stamp.type === type) as S[];
         },
         firstStamp: <S extends Stamp>(type: S['type']) => {
-            return stamps.find((stamp) => stamp.type === type) as S;
+            return stamps.find((stamp) => stamp.type === type) as S | undefined;
         },
         lastStamp: <S extends Stamp>(type: S['type']) => {
-            return stamps.findLast((stamp) => stamp.type === type) as S;
+            return stamps.findLast((stamp) => stamp.type === type) as S | undefined;
         },
     };
 }

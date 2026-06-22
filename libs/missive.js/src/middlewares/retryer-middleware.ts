@@ -1,7 +1,7 @@
 import { BusKinds, MessageRegistryType } from '../core/bus.js';
 import { Stamp } from '../core/envelope.js';
 import { Middleware } from '../core/middleware.js';
-import { buildSleeper, sleeperFactory } from '../utils/sleeper.js';
+import { buildSleeper } from '../utils/sleeper.js';
 import { RetryConfiguration } from '../utils/types.js';
 
 type BasicOptions = RetryConfiguration;
@@ -13,17 +13,12 @@ export type RetriedStamp = Stamp<{ attempt: number; errorMessage: string }, 'mis
 export function createRetryerMiddleware<BusKind extends BusKinds, T extends MessageRegistryType<BusKind>>(
     options: Options<T> = {},
 ): Middleware<BusKind, T> {
-    const defaultSleeper = buildSleeper(options);
-    const sleeperRegistry: Record<string, ReturnType<typeof sleeperFactory>> = {};
     return async (envelope, next) => {
         const type = envelope.message.__type;
-        if (options?.intents?.[type] && !sleeperRegistry[type]) {
-            sleeperRegistry[type] = buildSleeper(options.intents[type]);
-        }
-        const maxAttempts = options.intents?.[type]?.maxAttempts || options.maxAttempts || 3;
-        const sleeper = sleeperRegistry[type] || defaultSleeper;
+        const maxAttempts = options.intents?.[type]?.maxAttempts ?? options.maxAttempts ?? 3;
+        // build a fresh sleeper per dispatch so concurrent dispatches don't share mutable backoff state
+        const sleeper = buildSleeper(options.intents?.[type] ?? options);
         let attempt = 1;
-        sleeper.reset();
         let lastError: unknown | null = null;
         while (attempt <= maxAttempts) {
             try {

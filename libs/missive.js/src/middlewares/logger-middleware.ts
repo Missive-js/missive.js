@@ -49,14 +49,16 @@ export function createLoggerMiddleware<BusKind extends BusKinds, T extends Messa
         adapter = createLoggerAdapter({ logger });
     }
 
-    const log = async (step: Step, envelope: Envelope<unknown>, doAsync: boolean) => {
-        const identity = envelope.firstStamp<IdentityStamp>('missive:identity');
-        const results = envelope.stampsOfType<HandledStamp<unknown>>('missive:handled');
+    const log = async (step: Step, envelope: Envelope<unknown>, doAsync: boolean, stampsSnapshot?: Stamp[]) => {
+        // use a snapshot when provided so a deferred (collect-mode) log reflects the state at push time
+        const stamps = stampsSnapshot ?? envelope.stamps;
+        const identity = stamps.find((stamp) => stamp.type === 'missive:identity') as IdentityStamp | undefined;
+        const results = stamps.filter((stamp) => stamp.type === 'missive:handled') as HandledStamp<unknown>[];
         const promise = adapter[step](
             identity,
             envelope.message,
             results,
-            envelope.stamps.filter((stamp) => stamp.type !== 'missive:identity' && stamp.type !== 'missive:handled'),
+            stamps.filter((stamp) => stamp.type !== 'missive:identity' && stamp.type !== 'missive:handled'),
         );
         if (doAsync) {
             return promise;
@@ -93,7 +95,9 @@ export function createLoggerMiddleware<BusKind extends BusKinds, T extends Messa
             return;
         }
         const logs: Array<() => Promise<void>> = [];
-        logs.push(() => log('processing', envelope, doAsync));
+        // snapshot the stamps now so the deferred 'processing' log reflects the pre-next() state
+        const processingStamps = [...envelope.stamps];
+        logs.push(() => log('processing', envelope, doAsync, processingStamps));
         try {
             await next();
             attachNanoTimingStamp(startTime, envelope);

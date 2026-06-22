@@ -206,14 +206,16 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
         handlers: Handler<MessageName>[],
     ) => {
         type Result = HandlerDefinitions[MessageName]['result'];
-        let index = 0;
-        const next = async () => {
+        // Each middleware gets a `next` bound to its own position, so a middleware that calls
+        // next() more than once (e.g. the retryer) re-runs the rest of the chain from its position,
+        // instead of sharing a single advancing cursor that would skip the downstream middlewares.
+        const invoke = async (index: number): Promise<void> => {
             if (index < middlewares.length) {
-                const middleware = middlewares[index++];
+                const middleware = middlewares[index];
                 // we give the __type to the middleware only
                 await middleware(
                     envelope as Envelope<TypedMessage<HandlerDefinitions[MessageName][BusKind], MessageName>>,
-                    next,
+                    () => invoke(index + 1),
                 );
                 return;
             }
@@ -226,7 +228,7 @@ const createBus = <BusKind extends BusKinds, HandlerDefinitions extends MessageR
                 envelope.addStamp<HandledStamp<Result>>('missive:handled', result);
             }
         };
-        await next();
+        await invoke(0);
     };
 
     const isEnvelope = <MessageName extends keyof HandlerDefinitions & string>(
