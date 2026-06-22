@@ -4,3 +4,7 @@ packages:
     - 'examples/*'
     - 'docs'
     - 'demo/*'
+allowBuilds:
+    esbuild: true
+    sharp: true
+    unrs-resolver: true

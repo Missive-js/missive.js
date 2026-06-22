@@ -9,10 +9,10 @@
         "astro": "astro"
     },
     "dependencies": {
-        "@astrojs/check": "^0.9.4",
-        "astro": "^4.16.10",
+        "@astrojs/check": "^0.9.9",
+        "astro": "^4.16.19",
         "missive.js": "workspace:*",
         "missive.js-shared-code-example": "workspace:*",
-        "typescript": "^5.6.3"
+        "typescript": "^5.9.3"
     }
 }

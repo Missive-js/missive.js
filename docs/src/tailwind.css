@@ -1,6 +1,25 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@layer base, starlight, theme, components, utilities;
+
+@import '@astrojs/starlight-tailwind';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Generated color palettes */
+@theme {
+    --color-accent-200: #cebef9;
+    --color-accent-600: #812de7;
+    --color-accent-900: #3b1c69;
+    --color-accent-950: #291847;
+
+    --color-gray-100: #f6f6f6;
+    --color-gray-200: #eeeeed;
+    --color-gray-300: #c2c2c1;
+    --color-gray-400: #8b8c8a;
+    --color-gray-500: #585856;
+    --color-gray-700: #383837;
+    --color-gray-800: #272725;
+    --color-gray-900: #181817;
+}
 
 .hero,
 .card-grid {

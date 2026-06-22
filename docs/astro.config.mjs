@@ -1,6 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import tailwind from '@astrojs/tailwind';
+import tailwindcss from '@tailwindcss/vite';
 import starlightLinksValidator from 'starlight-links-validator';
 import react from '@astrojs/react';
 
@@ -48,9 +48,7 @@ export default defineConfig({
                 src: './src/assets/envelope.svg',
                 alt: title,
             },
-            social: {
-                github,
-            },
+            social: [{ icon: 'github', label: 'GitHub', href: github }],
             customCss: ['./src/tailwind.css'],
             components: {
                 Footer: './src/ui/components/astro/footer.astro',
@@ -75,11 +73,11 @@ export default defineConfig({
                 },
                 {
                     label: 'Guides',
-                    autogenerate: { directory: 'guides' },
+                    items: [{ autogenerate: { directory: 'guides' } }],
                 },
                 {
                     label: 'Built-in Middlewares',
-                    autogenerate: { directory: 'built-in-middlewares' },
+                    items: [{ autogenerate: { directory: 'built-in-middlewares' } }],
                 },
                 {
                     label: 'Built-in Stamps',
@@ -99,10 +97,9 @@ export default defineConfig({
                 },
             ],
         }),
-        tailwind({
-            applyBaseStyles: false,
-            nesting: true,
-        }),
         react(),
     ],
+    vite: {
+        plugins: [tailwindcss()],
+    },
 });

@@ -37,23 +37,48 @@ jobs:
               uses: actions/checkout@v4
 
             - name: ⎔ Setup node
-              uses: actions/setup-node@v4
+              # Pinned to the setup-node#1558 fix commit ("Remove dummy
+              # NODE_AUTH_TOKEN export"), which is NOT in any release yet (latest
+              # v6.4.0 predates it). registry-url below is REQUIRED: it writes the
+              # .npmrc registry entry that makes npm engage OIDC (NPM_CONFIG_REGISTRY
+              # env alone does NOT trigger it). On released setup-node, registry-url
+              # ALSO injects a dummy NODE_AUTH_TOKEN that breaks OIDC (404/ENEEDAUTH);
+              # this commit removes that injection so NODE_AUTH_TOKEN stays undefined
+              # and npm falls through to OIDC.
+              # TODO: switch to a version tag once a release > v6.4.0 ships #1558.
+              uses: actions/setup-node@v6
               with:
-                  node-version: '20'
+                  node-version: '24'
+                  registry-url: 'https://registry.npmjs.org'
+                  package-manager-cache: false # never cache in release builds
 
             - name: ⎔ Set up pnpm
-              uses: pnpm/action-setup@v4
+              # Current major. Used for install + build only — NOT for publishing:
+              # pnpm 11's native OIDC token exchange is broken (pnpm/pnpm#11566),
+              # so we publish via the npm CLI below instead.
+              uses: pnpm/action-setup@v6
 
             - name: 📥 Download deps
               run: pnpm install --frozen-lockfile
 
-            - name: 📲 Test the builds
+            - name: 📲 Build the package
               run: pnpm run build -F missive.js
 
+            # Tokenless publish via npm's OIDC trusted publishing (the reference
+            # implementation — pnpm 11's own OIDC is broken, pnpm/pnpm#11566).
+            # Publishes from the package directory (the only OIDC-supported form;
+            # publishing a pre-packed tarball does NOT engage OIDC). Requires the
+            # workflow-level `id-token: write`, the NPM_CONFIG_REGISTRY env below,
+            # and a Trusted Publisher configured on npmjs.com:
+            #   owner: missive-js · repo: missive.js · workflow: release.yaml
             - name: 📢 Publish to NPM
-              run: pnpm publish --provenance --access public --no-git-checks --F missive.js
+              working-directory: libs/missive.js
+              # Do NOT set NODE_AUTH_TOKEN/NPM_TOKEN here — with the pinned fix,
+              # registry-url's .npmrc has no resolvable token, so npm uses OIDC.
+              # --loglevel verbose surfaces npm's OIDC exchange if this still
+              # fails; safe to drop once publishing is confirmed working.
+              run: npm publish --provenance --access public --loglevel verbose
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   # Use OIDC for npm authentication instead of NPM_TOKEN
                   NODE_AUTH_TOKEN: ''
                   NPM_TOKEN: ''

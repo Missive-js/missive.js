@@ -1,12 +1,13 @@
 {
     "devDependencies": {
-        "@types/node": "^22.9.0",
+        "@types/node": "^22.20.0",
+        "eslint-config-custom": "workspace:*",
         "tsconfig": "workspace:*",
-        "typescript": "^5.6.3"
+        "typescript": "^5.9.3"
     },
     "dependencies": {
         "missive.js": "workspace:*",
-        "zod": "^3.23.8"
+        "zod": "^3.25.76"
     },
     "engines": {
         "node": ">=20"
